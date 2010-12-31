@@ -2,6 +2,7 @@
 
 import time
 import unittest
+import warnings
 
 try:
     import cPickle as pickle
@@ -9,7 +10,9 @@ except ImportError:
     import pickle
 
 from django.core.cache import get_cache
+from django.utils.datastructures import SortedDict
 from models import Poll, expensive_calculation
+from redis.exceptions import ConnectionError
 
 # functions/classes for complex data type tests
 def f():
@@ -86,7 +89,7 @@ class RedisCacheTests(unittest.TestCase):
         self.assertEqual(self.cache.get('answer'), 42)
         self.assertEqual(self.cache.incr('answer', 10), 52)
         self.assertEqual(self.cache.get('answer'), 52)
-        self.assertRaises(ValueError, self.cache.incr, 'does_not_exist')
+        self.assertEqual(self.cache.incr('does_not_exist', 1), 1)
 
     def test_decr(self):
         # Cache values can be decremented
@@ -95,7 +98,7 @@ class RedisCacheTests(unittest.TestCase):
         self.assertEqual(self.cache.get('answer'), 42)
         self.assertEqual(self.cache.decr('answer', 10), 32)
         self.assertEqual(self.cache.get('answer'), 32)
-        self.assertRaises(ValueError, self.cache.decr, 'does_not_exist')
+        self.assertEqual(self.cache.decr('does_not_exist', 1), 1)
 
     def test_data_types(self):
         # Many different data types can be cached
@@ -267,6 +270,154 @@ class RedisCacheTests(unittest.TestCase):
         self.cache.set_many({'key3': 'sausage', 'key4': 'lobster bisque'}, 60*60*24*30 + 1)
         self.assertEqual(self.cache.get('key3'), 'sausage')
         self.assertEqual(self.cache.get('key4'), 'lobster bisque')
+        
+    def test_warnings_param(self):
+        # tests that the default warnings attribute is set
+        self.assertTrue(hasattr(self.cache, 'fail_silently'))
+        self.assertFalse(self.cache.fail_silently)
+        
+        local_cache = get_cache('redis_cache.cache://127.0.0.1:6969?db=15&fail_silently=0')
+        self.assertFalse(local_cache.fail_silently)
+        local_cache = get_cache('redis_cache.cache://127.0.0.1:6969?db=15&fail_silently=1')
+        self.assertTrue(local_cache.fail_silently)
+        local_cache = get_cache('redis_cache.cache://127.0.0.1:6969?db=15&fail_silently=900')
+        self.assertTrue(local_cache.fail_silently)
+        local_cache = get_cache('redis_cache.cache://127.0.0.1:6969?db=15&fail_silently=muahahaha')
+        self.assertFalse(local_cache.fail_silently)
+    
+
+class RedisCacheServerDownWithoutWarningsTests(unittest.TestCase):
+    """
+    Tests that a connection to redis failing will raise an exception preventing django from starting up
+
+    """
+
+    def test_no_connection(self):
+        self.cache = get_cache('redis_cache.cache://127.0.0.1:6969?db=15&fail_silently=0')
+        self.assertFalse(self.cache.fail_silently)
+        self.assertRaises(ConnectionError, self.cache.get, 'key_doesnt_exist')
+
+
+class RedisCacheServerDownWithWarningsTests(unittest.TestCase):
+    """
+    Runs all regular tests with the constraint that the connection to redis is down, and warnings are enabled.
+    Relevant tests were copied and modified from the main test class.
+    """
+
+    def setUp(self):
+        # attempts to connect on incorrect port, simulating redis server going down
+        self.cache = get_cache('redis_cache.cache://127.0.0.1:6969?db=15&fail_silently=1')
+
+    def tearDown(self):
+        self.cache.clear()
+    
+    def test_setup_works(self):
+        self.assertTrue(True)
+    
+    def test_delete(self):
+        self.assertFalse(self.cache.delete("key1"))
+    
+    def test_simple(self):
+        # Simple cache set/get works
+        self.assertFalse(self.cache.set("key", "value"))
+           
+    def test_add(self):
+        # A key can be added to a cache
+        self.assertFalse(self.cache.add("addkey1", "newvalue"))
+    
+    def test_non_existent(self):
+        self.assertEqual(self.cache.get("does_not_exist"), None)
+    
+    def test_get_many(self):
+        self.cache.set('a', 'a')
+        self.cache.set('b', 'b')
+        self.cache.set('c', 'c')
+        self.cache.set('d', 'd')
+        sdict = self.cache.get_many(['a', 'c', 'd'])
+        self.assertTrue(issubclass(sdict.__class__, SortedDict ))
+        self.assertEqual(len(sdict), 0)
+
+    def test_has_key(self):
+        # The cache can be inspected for cache keys
+        self.assertFalse(self.cache.has_key("goodbye1"))
+    
+    def test_in(self):
+        # The in operator can be used to inspet cache contents
+        self.cache.set('key', 'value')
+        self.assertFalse("key" in self.cache)
+    
+    def test_incr(self):
+        self.cache.set('answer', 41)
+        self.assertEquals(self.cache.incr('answer', 1), 1)
+    
+    def test_decr(self):
+        # Cache values can be decremented
+        self.cache.set('answer', 41)
+        self.assertEquals(self.cache.decr('answer', 1), 1)
+            
+    def test_data_types(self):
+        # Many different data types can be cached
+        stuff = {
+            'string'    : 'this is a string',
+            'int'       : 42,
+            'list'      : [1, 2, 3, 4],
+            'tuple'     : (1, 2, 3, 4),
+            'dict'      : {'A': 1, 'B' : 2},
+            'function'  : f,
+            'class'     : C,
+        }
+        self.cache.set("stuff", stuff)
+        self.assertEqual(self.cache.get("stuff"), None)
+    
+    def test_expiration(self):
+        # Cache values can be set to expire
+        self.assertFalse(self.cache.set('expire1', 'very quickly', 1))
+        self.assertFalse(self.cache.set('expire2', 'very quickly', 1))
+        self.assertFalse(self.cache.set('expire3', 'very quickly', 1))
+    
+    def test_unicode(self):
+        # Unicode values can be cached
+        stuff = {
+            u'ascii': u'ascii_value',
+            u'unicode_ascii': u'Iñtërnâtiônàlizætiøn1',
+            u'Iñtërnâtiônàlizætiøn': u'Iñtërnâtiônàlizætiøn2',
+            u'ascii': {u'x' : 1 }
+        }
+        for (key, value) in stuff.items():
+            self.assertFalse(self.cache.set(key, value))
+            self.assertEqual(self.cache.get(key), None)
+    
+    def test_set_many(self):
+        # Multiple keys can be set using set_many
+        self.cache.set_many({"key1": "spam", "key2": "eggs"})
+        self.assertEqual(self.cache.get("key1"), None)
+        self.assertEqual(self.cache.get("key2"), None)
+    
+    def test_set_many_expiration(self):
+        # set_many takes a second ``timeout`` parameter
+        self.cache.set_many({"key1": "spam", "key2": "eggs"}, 1)
+        self.assertEqual(self.cache.get("key1"), None)
+        self.assertEqual(self.cache.get("key2"), None)
+    
+    def test_delete_many(self):
+        # Multiple keys can be deleted using delete_many
+        self.cache.set("key1", "spam")
+        self.cache.set("key2", "eggs")
+        self.cache.set("key3", "ham")
+        self.cache.delete_many(["key1", "key2"])
+        self.assertEqual(self.cache.get("key1"), None)
+        self.assertEqual(self.cache.get("key2"), None)
+        self.assertEqual(self.cache.get("key3"), None)
+
+    
+    def test_clear(self):
+        # The cache can be emptied using clear
+        self.cache.set("key1", "spam")
+        self.cache.set("key2", "eggs")
+        self.cache.clear()
+        self.assertEqual(self.cache.get("key1"), None)
+        self.assertEqual(self.cache.get("key2"), None)
 
 if __name__ == '__main__':
     unittest.main()
+
