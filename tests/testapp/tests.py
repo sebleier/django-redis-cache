@@ -83,7 +83,7 @@ class RedisCacheTests(unittest.TestCase):
 
     def test_incr(self):
         # Cache values can be incremented
-        self.cache.set('answer', 41)
+        self.cache.set('answer', 41, 30)
         self.assertEqual(self.cache.get('answer'), 41)
         self.assertEqual(self.cache.incr('answer'), 42)
         self.assertEqual(self.cache.get('answer'), 42)
