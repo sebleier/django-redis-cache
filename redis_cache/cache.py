@@ -216,21 +216,23 @@ class CacheClass(BaseCache):
 
     def incr(self, key, delta=1):
         """
-        Uses the native Redis incr which is atomic rather than relying on django's get-modify-save base.
-        Increases the given key by ``delta`` which defaults to 1
+        Does not use the atomic redis incr or incrby as there seems to be a problem with retrieving the correct value back from the server. Uses
+        the regular Django get then set.
         """
         try:
-            return self._cache.incr(key, delta)
+            key = self.prepare_key(key)
+            return super(CacheClass, self).incr(key, delta)
         except Exception as err:
             return self.warn_or_error(err, delta)
 
     def decr(self, key, delta=1):
         """
-        Uses the native Redis incr which is atomic rather than relying on django's get-modify-save base.
-        Decreases the given key by ``delta`` which defaults to 1
+        Does not use the atomic redis decr or decrby as there seems to be a problem with retrieving the correct value back from the server. Uses
+        the regular Django get then set.
         """
         try:
-            self._cache.decr(key, delta)
+            key = self.prepare_key(key)
+            return super(CacheClass, self).decr(key, delta)
         except Exception as err:
             return self.warn_or_error(err, delta)
         

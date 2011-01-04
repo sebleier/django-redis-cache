@@ -21,14 +21,19 @@ class C:
     def m(n):
         return 24
 
+# use DB 16 for testing and hope there isn't any important data :->
+redis_url = 'redis_cache.cache://127.0.0.1:6379?db=15'
+redis_url_bad = 'redis_cache.cache://127.0.0.1:6969?db=15'
+#redis_url       = 'redis_cache.cache://dkpwebint1:6379?db=15'
+#redis_url_bad   = 'redis_cache.cache://dkpwebint1:6969?db=15'
+
 class RedisCacheTests(unittest.TestCase):
     """
     A common set of tests derived from Django's own cache tests
 
     """
     def setUp(self):
-        # use DB 16 for testing and hope there isn't any important data :->
-        self.cache = get_cache('redis_cache.cache://127.0.0.1:6379?db=15')
+        self.cache = get_cache(redis_url)
 
     def tearDown(self):
         self.cache.clear()
@@ -83,13 +88,13 @@ class RedisCacheTests(unittest.TestCase):
 
     def test_incr(self):
         # Cache values can be incremented
-        self.cache.set('answer', 41, 30)
-        self.assertEqual(self.cache.get('answer'), 41)
-        self.assertEqual(self.cache.incr('answer'), 42)
-        self.assertEqual(self.cache.get('answer'), 42)
-        self.assertEqual(self.cache.incr('answer', 10), 52)
-        self.assertEqual(self.cache.get('answer'), 52)
-        self.assertEqual(self.cache.incr('does_not_exist', 1), 1)
+        key = 'answer'
+        self.assertTrue(self.cache.set(key, 41))
+        self.assertEqual(self.cache.incr(key, 1), 42)
+        self.assertEqual(self.cache.get(key), 42)
+        self.assertEqual(self.cache.incr(key, 10), 52)
+        self.assertEqual(self.cache.get(key), 52)
+        self.assertEqual(self.cache.incr(key, 1), 53)
 
     def test_decr(self):
         # Cache values can be decremented
@@ -98,7 +103,7 @@ class RedisCacheTests(unittest.TestCase):
         self.assertEqual(self.cache.get('answer'), 42)
         self.assertEqual(self.cache.decr('answer', 10), 32)
         self.assertEqual(self.cache.get('answer'), 32)
-        self.assertEqual(self.cache.decr('does_not_exist', 1), 1)
+        self.assertRaises(ValueError, self.cache.decr, 'key_doesnt_exist')
 
     def test_data_types(self):
         # Many different data types can be cached
@@ -276,13 +281,13 @@ class RedisCacheTests(unittest.TestCase):
         self.assertTrue(hasattr(self.cache, 'fail_silently'))
         self.assertFalse(self.cache.fail_silently)
         
-        local_cache = get_cache('redis_cache.cache://127.0.0.1:6969?db=15&fail_silently=0')
+        local_cache = get_cache(redis_url + '&fail_silently=0')
         self.assertFalse(local_cache.fail_silently)
-        local_cache = get_cache('redis_cache.cache://127.0.0.1:6969?db=15&fail_silently=1')
+        local_cache = get_cache(redis_url + '&fail_silently=1')
         self.assertTrue(local_cache.fail_silently)
-        local_cache = get_cache('redis_cache.cache://127.0.0.1:6969?db=15&fail_silently=900')
+        local_cache = get_cache(redis_url + '&fail_silently=900')
         self.assertTrue(local_cache.fail_silently)
-        local_cache = get_cache('redis_cache.cache://127.0.0.1:6969?db=15&fail_silently=muahahaha')
+        local_cache = get_cache(redis_url + '&fail_silently=muahahaha')
         self.assertFalse(local_cache.fail_silently)
     
 
@@ -293,7 +298,7 @@ class RedisCacheServerDownWithoutWarningsTests(unittest.TestCase):
     """
 
     def test_no_connection(self):
-        self.cache = get_cache('redis_cache.cache://127.0.0.1:6969?db=15&fail_silently=0')
+        self.cache = get_cache(redis_url_bad + 'fail_silently=0')
         self.assertFalse(self.cache.fail_silently)
         self.assertRaises(ConnectionError, self.cache.get, 'key_doesnt_exist')
 
@@ -306,7 +311,7 @@ class RedisCacheServerDownWithWarningsTests(unittest.TestCase):
 
     def setUp(self):
         # attempts to connect on incorrect port, simulating redis server going down
-        self.cache = get_cache('redis_cache.cache://127.0.0.1:6969?db=15&fail_silently=1')
+        self.cache = get_cache(redis_url_bad + '&fail_silently=1')
 
     def tearDown(self):
         self.cache.clear()
@@ -353,7 +358,7 @@ class RedisCacheServerDownWithWarningsTests(unittest.TestCase):
     def test_decr(self):
         # Cache values can be decremented
         self.cache.set('answer', 41)
-        self.assertEquals(self.cache.decr('answer', 1), 1)
+        self.assertEquals(self.cache.decr('answer', 1), -1)
             
     def test_data_types(self):
         # Many different data types can be cached
