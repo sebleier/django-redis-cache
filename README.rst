@@ -26,7 +26,9 @@ Usage
 
     ?warnings=1
     
-    to the CACHE_BACKEND url
+   so the CACHE_BACKEND url looks like so ::
+   
+   CACHE_BACKEND = 'redis_cache.cache://<host>:<port>?warnings=1' 
 
 .. _redis-py: http://github.com/andymccurdy/redis-py/
 
