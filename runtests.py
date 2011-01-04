@@ -5,7 +5,7 @@ from os.path import dirname, abspath
 
 parent = dirname(abspath(__file__))
 sys.path.insert(0, parent)
-sys.path.insert(0, dirname(parent)) # external libs (eg. Django, Redis) can be placed alongside directory without affection VCS
+sys.path.insert(0, dirname(parent)) # external libs (eg. Django, Redis) can be placed alongside directory without affecting VCS or PATHs
 
 from django.conf import settings
 

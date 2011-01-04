@@ -24,8 +24,6 @@ class C:
 # use DB 16 for testing and hope there isn't any important data :->
 redis_url = 'redis_cache.cache://127.0.0.1:6379?db=15'
 redis_url_bad = 'redis_cache.cache://127.0.0.1:6969?db=15'
-#redis_url       = 'redis_cache.cache://dkpwebint1:6379?db=15'
-#redis_url_bad   = 'redis_cache.cache://dkpwebint1:6969?db=15'
 
 class RedisCacheTests(unittest.TestCase):
     """
