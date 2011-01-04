@@ -22,7 +22,11 @@ Usage
 
     CACHE_BACKEND = 'redis_cache.cache://<host>:<port>'
 
+3. (Optional) To suppress cache errors, so that warnings are generated instead, add the query string :: 
 
+    ?warnings=1
+    
+    to the CACHE_BACKEND url
 
 .. _redis-py: http://github.com/andymccurdy/redis-py/
 
