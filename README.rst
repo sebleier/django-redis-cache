@@ -24,11 +24,11 @@ Usage
 
 3. (Optional) To suppress cache errors, so that warnings are generated instead, add the query string :: 
 
-    ?warnings=1
+    ?fail_silently=1
     
    so the CACHE_BACKEND url looks like so ::
    
-   CACHE_BACKEND = 'redis_cache.cache://<host>:<port>?warnings=1' 
+   CACHE_BACKEND = 'redis_cache.cache://<host>:<port>?fail_silently=1' 
 
 .. _redis-py: http://github.com/andymccurdy/redis-py/
 
