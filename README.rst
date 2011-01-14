@@ -22,6 +22,14 @@ Usage
 
     CACHE_BACKEND = 'redis_cache.cache://<host>:<port>'
 
+or using Django 1.3::
+
+    CACHES = {
+        'default': {
+            'BACKEND': 'redis_cache.cache.CacheClass',
+        },
+    }
+
 
 
 .. _redis-py: http://github.com/andymccurdy/redis-py/
