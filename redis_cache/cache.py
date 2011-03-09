@@ -92,10 +92,14 @@ class CacheClass(BaseCache):
         Persist a value to the cache, and set an optional expiration time.
         """
         key = self.make_key(key, version=version)
-        # store the pickled value
-        result = self._cache.set(key, pickle.dumps(value))
-        # set expiration if needed
-        self.expire(key, timeout, version=version)
+        if timeout is None:
+            timeout = self.default_timeout
+        if timeout <= 0:
+            # store the pickled value
+            result = self._cache.set(key, pickle.dumps(value))
+        else:
+            # store the pickled value with timeout
+            result = self._cache.setex(key, pickle.dumps(value), timeout)
         # result is a boolean
         return result
 
