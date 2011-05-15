@@ -85,15 +85,28 @@ class CacheClass(BaseCache):
         value = self._cache.get(key)
         if value is None:
             return default
-        return self.unpickle(value)
+
+        try:
+            value = self.unpickle(value)
+        except pickle.UnpicklingError:
+            pass
+
+        return value
 
     def set(self, key, value, timeout=None, version=None):
         """
         Persist a value to the cache, and set an optional expiration time.
         """
         key = self.make_key(key, version=version)
-        # store the pickled value
-        result = self._cache.set(key, pickle.dumps(value))
+
+        if isinstance(value, basestring):
+            pass
+        elif isinstance(value, (int, long)):
+            value = '%d' % (value,)
+        else:
+            value = pickle.dumps(value)
+
+        result = self._cache.set(key, value)
         # set expiration if needed
         self.expire(key, timeout, version=version)
         # result is a boolean
