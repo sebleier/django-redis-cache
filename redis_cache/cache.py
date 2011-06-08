@@ -182,7 +182,7 @@ class CacheClass(BaseCache):
         """
         Disconnect from the cache.
         """
-        self._cache.connection.disconnect()
+        pass
 
 class RedisCache(CacheClass):
     """
