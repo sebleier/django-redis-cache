@@ -85,15 +85,24 @@ class CacheClass(BaseCache):
         value = self._cache.get(key)
         if value is None:
             return default
-        return self.unpickle(value)
+        try:
+            result = int(value)
+        except (ValueError, TypeError):
+            result = self.unpickle(value)
+        return result
+
 
     def set(self, key, value, timeout=None, version=None):
         """
         Persist a value to the cache, and set an optional expiration time.
         """
         key = self.make_key(key, version=version)
-        # store the pickled value
-        result = self._cache.set(key, pickle.dumps(value))
+        try:
+            value = int(value)
+        except (ValueError, TypeError):
+            result = self._cache.set(key, pickle.dumps(value))
+        else:
+            result = self._cache.set(key, value)
         # set expiration if needed
         self.expire(key, timeout, version=version)
         # result is a boolean
@@ -178,11 +187,28 @@ class CacheClass(BaseCache):
                                    for key, value in safe_data.iteritems()))
             map(self.expire, safe_data, [timeout]*len(safe_data))
 
+    def incr(self, key, delta=1, version=None):
+        """
+        Add delta to value in the cache. If the key does not exist, raise a
+        ValueError exception.
+        """
+        key = self.make_key(key, version=version)
+        exists = self._cache.exists(key)
+        if not exists:
+            raise ValueError("Key '%s' not found" % key)
+        try:
+            value = self._cache.incr(key, delta)
+        except redis.ResponseError:
+            value = self.get(key) + 1
+            self.set(key, value)
+        return value
+
     def close(self, **kwargs):
         """
         Disconnect from the cache.
         """
         self._cache.connection.disconnect()
+
 
 class RedisCache(CacheClass):
     """
