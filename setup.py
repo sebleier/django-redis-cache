@@ -1,4 +1,4 @@
-from distutils.core import setup
+from setuptools import setup
 
 setup(
     name = "django-redis-cache",
@@ -8,7 +8,7 @@ setup(
     version = "0.5.1",
     packages = ["redis_cache"],
     description = "Redis Cache Backend for Django",
-    install_requires=['redis',],
+    install_requires=['redis>=2.4.0',],
     classifiers = [
         "Programming Language :: Python",
         "Operating System :: OS Independent",
