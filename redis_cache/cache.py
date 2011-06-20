@@ -184,6 +184,7 @@ class CacheClass(BaseCache):
         """
         self._cache.connection_pool.disconnect()
 
+
 class RedisCache(CacheClass):
     """
     A subclass that is supposed to be used on Django >= 1.3.
