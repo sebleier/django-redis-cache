@@ -1,3 +1,4 @@
+.settings/org.eclipse.core.resources.prefs
 *.py[c|o]
 .DS_Store
 *.sql
@@ -8,4 +9,6 @@
 *.wsgi
 local_settings.py
 development_settings.py
+.project
+.pydevproject
 *.egg-info
