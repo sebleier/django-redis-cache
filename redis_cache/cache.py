@@ -1,6 +1,7 @@
 from django.core.cache.backends.base import BaseCache, InvalidCacheBackendError
 from django.utils.encoding import smart_unicode, smart_str
 from django.utils.datastructures import SortedDict
+from django.conf import settings
 
 try:
     import cPickle as pickle
@@ -73,7 +74,8 @@ class CacheClass(BaseCache):
             host = server or 'localhost'
             port = 6379
         self._cache = redis.Redis(host=host, port=port, db=db,
-            password=password, connection_pool=pool.get_connection_pool())
+            password=password, connection_pool=pool.get_connection_pool(host=host, port=port, db=db, password=password))
+
 
     def make_key(self, key, version=None):
         """
@@ -198,6 +200,11 @@ class CacheClass(BaseCache):
                                    for key, value in safe_data.iteritems()))
             map(self.expire, safe_data, [timeout]*len(safe_data))
 
+    def close(self, **kwargs):
+        """
+        Disconnect from the cache.
+        """
+        self._cache.connection_pool.disconnect()
 
 class RedisCache(CacheClass):
     """
