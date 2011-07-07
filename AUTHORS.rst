@@ -4,5 +4,5 @@ Jannis Leidel <http://github.com/jezdez>
 S. Angel / Twidi <http://github.com/twidi>
 Noah Kantrowitz / coderanger <http://github.com/coderanger>
 Martin Mahner / bartTC <http://github.com/bartTC>
-
-Forked from http://github.com/sebleier/django-redis-cache
+Timothée Peignier / cyberdelia <https://github.com/cyberdelia>
+Lior Sion / liorsion <https://github.com/liorsion>
