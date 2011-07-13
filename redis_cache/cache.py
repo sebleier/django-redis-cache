@@ -1,4 +1,5 @@
 from django.core.cache.backends.base import BaseCache, InvalidCacheBackendError
+from django.core.exceptions import ImproperlyConfigured
 from django.utils.encoding import smart_unicode, smart_str
 from django.utils.datastructures import SortedDict
 
@@ -14,29 +15,6 @@ except ImportError:
         "Redis cache backend requires the 'redis-py' library")
 
 
-class ImproperlyConfigured(Exception):
-    "Django Redis Cache is somehow improperly configured"
-    pass
-
-
-class CacheConnectionPool(object):
-    _connection_pool = None
-
-    def get_connection_pool(self, host='127.0.0.1', port=6379, db=1, password=None,
-        socket_timeout=None, connection_pool=None, charset='utf-8', errors='strict'):
-        if self._connection_pool is None:
-            kwargs = {
-                'db': db,
-                'password': password,
-                'socket_timeout': socket_timeout,
-                'encoding': charset,
-                'encoding_errors': errors,
-                'host': host,
-                'port': port
-            }
-            self._connection_pool = redis.ConnectionPool(**kwargs)
-        return self._connection_pool
-pool = CacheConnectionPool()
 
 class CacheKey(object):
     """
@@ -77,8 +55,7 @@ class CacheClass(BaseCache):
         else:
             host = server or 'localhost'
             port = 6379
-        self._cache = redis.Redis(host=host, port=port, db=db,
-            password=password, connection_pool=pool.get_connection_pool(host=host, port=port, db=db, password=password))
+        self._cache = redis.Redis(host=host, port=port, db=db, password=password)
 
 
     def make_key(self, key, version=None):
@@ -113,35 +90,20 @@ class CacheClass(BaseCache):
             return default
         return self.unpickle(value)
 
-    def set(self, key, value, timeout=None, version=None):
+    def set(self, key, value, timeout=None, version=None, client=None):
         """
         Persist a value to the cache, and set an optional expiration time.
         """
+        if not client:
+            client = self._cache
         key = self.make_key(key, version=version)
+        # get timout
+        if not timeout:
+            timeout = self.default_timeout
         # store the pickled value
-        result = self._cache.set(key, pickle.dumps(value))
-        # set expiration if needed
-        self.expire(key, timeout, version=version)
+        result = self._cache.setex(key, pickle.dumps(value), int(timeout))
         # result is a boolean
         return result
-
-    def expire(self, key, timeout=None, version=None):
-        """
-        Set content expiration, if necessary
-        """
-        key = self.make_key(key, version=version)
-        if timeout is None:
-            timeout = self.default_timeout
-        if timeout <= 0:
-            # force the key to be non-volatile
-            result = self._cache.get(key)
-            self._cache.set(key, result)
-        else:
-            # If the expiration command returns false, we need to reset the key
-            # with the new expiration
-            if not self._cache.expire(key, timeout):
-                value = self.get(key, version=version)
-                self.set(key, value, timeout, version=version)
 
     def delete(self, key, version=None):
         """
@@ -175,6 +137,8 @@ class CacheClass(BaseCache):
         """
         Retrieve many keys.
         """
+        if not keys:
+            return {}
         recovered_data = SortedDict()
         new_keys = map(lambda key: self.make_key(key, version=version), keys)
         map_keys = dict(zip(new_keys, keys))
@@ -196,13 +160,10 @@ class CacheClass(BaseCache):
         If timeout is given, that timeout will be used for the key; otherwise
         the default cache timeout will be used.
         """
-        safe_data = {}
+        pipeline = self._cache.pipeline()
         for key, value in data.iteritems():
-            safe_data[key] = pickle.dumps(value)
-        if safe_data:
-            self._cache.mset(dict((self.make_key(key, version=version), value)
-                                   for key, value in safe_data.iteritems()))
-            map(self.expire, safe_data, [timeout]*len(safe_data))
+            self.set(key, value, timeout, version=version, client=pipeline)
+        pipeline.execute()
 
 
 class RedisCache(CacheClass):
