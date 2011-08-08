@@ -32,9 +32,11 @@ On Django >= 1.3::
             'LOCATION': '<host>:<port>',
             'OPTIONS': { # optional
                 'DB': 1,
-                'PASSWORD': 'yadayada',
+                'PASSWORD': 'yadayada', 
+                'PICKLE_VERSION': -1,   # default
             },
         },
     }
+
 
 .. _redis-py: http://github.com/andymccurdy/redis-py/
