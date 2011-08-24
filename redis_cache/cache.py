@@ -192,14 +192,19 @@ class CacheClass(BaseCache):
         if not client:
             client = self._client
         key = self.make_key(key, version=version)
-        if not timeout:
-            timeout = self.default_timeout
         try:
             value = int(value)
         except (ValueError, TypeError):
-            result = client.setex(key, pickle.dumps(value), int(timeout))
-        else:
-            result = client.setex(key, value, int(timeout))
+            value = pickle.dumps(value)
+
+        if timeout is None:
+            timeout = self.default_timeout
+
+        result = client.set(key, value)
+
+        if timeout <> 0:
+            client.expire(key, timeout)
+
         # result is a boolean
         return result
 
