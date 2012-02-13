@@ -38,15 +38,14 @@ class CacheKey(object):
 
 
 class CacheConnectionPool(object):
-    _connection_pool = None
-
+    _connection_pools = {} #id: reis.ConnectionPool, for multi-cache backends from Django 1.3 
     def get_connection_pool(self, host='127.0.0.1', port=6379, db=1,
         password=None, parser_class=None,
         unix_socket_path=None):
-        if self._connection_pool is None:
+        if self._connection_pools.get(db) is None:
             connection_class = (
                 unix_socket_path and UnixDomainSocketConnection or Connection
-            )
+            )            
             kwargs = {
                 'db': db,
                 'password': password,
@@ -60,8 +59,8 @@ class CacheConnectionPool(object):
                 })
             else:
                 kwargs['path'] = unix_socket_path
-            self._connection_pool = redis.ConnectionPool(**kwargs)
-        return self._connection_pool
+            self._connection_pools[db] = redis.ConnectionPool(**kwargs)
+        return self._connection_pools.get(db)
 pool = CacheConnectionPool()
 
 
