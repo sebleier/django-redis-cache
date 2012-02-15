@@ -13,10 +13,18 @@ INSTALLED_APPS = [
 CACHES = {
     'default': {
         'BACKEND': 'redis_cache.RedisCache',
-        'LOCATION': '127.0.0.1:6379',
+        'LOCATION': '192.168.32.139:6379',
         'OPTIONS': { # optional
             'DB': 15,
-            'PASSWORD': 'yadayada',
+            #'PASSWORD': 'yadayada',
+        },
+    },
+    '2ndcache': { #test under django 1.3+
+        'BACKEND': 'redis_cache.RedisCache',
+        'LOCATION': '192.168.32.139:6379',
+        'OPTIONS': { # optional
+            'DB': 14,
+            #'PASSWORD': 'yadayada',
         },
     },
 }
