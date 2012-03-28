@@ -163,10 +163,7 @@ class CacheClass(BaseCache):
 
         Returns ``True`` if the object was added, ``False`` if not.
         """
-        key = self.make_key(key, version=version)
-        if self._client.exists(key):
-            return False
-        return self.set(key, value, timeout)
+        return self.set(key, value, timeout, _add_only=True)
 
     def get(self, key, default=None, version=None):
         """
@@ -184,15 +181,22 @@ class CacheClass(BaseCache):
             result = self.unpickle(value)
         return result
 
-    def _set(self, key, value, timeout, client):
+    def _set(self, key, value, timeout, client, _add_only=False):
         if timeout == 0:
+            if _add_only:
+                return client.setnx(key, value)
             return client.set(key, value)
         elif timeout > 0:
-            return client.setex(key, value, int(timeout))
+            if _add_only:
+                added = client.setnx(key, value)
+                if added:
+                    client.expire(key, timeout)
+                return added
+            return client.setex(key, value, timeout)
         else:
             return False
 
-    def set(self, key, value, timeout=None, version=None, client=None):
+    def set(self, key, value, timeout=None, version=None, client=None, _add_only=False):
         """
         Persist a value to the cache, and set an optional expiration time.
         """
@@ -207,9 +211,9 @@ class CacheClass(BaseCache):
             if int(value) != value:
                 raise TypeError
         except (ValueError, TypeError):
-            result = self._set(key, pickle.dumps(value), int(timeout), client)
+            result = self._set(key, pickle.dumps(value), int(timeout), client, _add_only)
         else:
-            result = self._set(key, int(value), int(timeout), client)
+            result = self._set(key, int(value), int(timeout), client, _add_only)
         # result is a boolean
         return result
 
