@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import time
-import unittest
 
 try:
     import cPickle as pickle
@@ -9,8 +8,10 @@ except ImportError:
     import pickle
 from django import VERSION
 from django.core.cache import get_cache
+from django.test import TestCase
 from models import Poll, expensive_calculation
-from redis_cache.cache import RedisCache
+from redis_cache.cache import RedisCache, ImproperlyConfigured
+from redis.connection import UnixDomainSocketConnection
 
 # functions/classes for complex data type tests
 def f():
@@ -19,13 +20,14 @@ class C:
     def m(n):
         return 24
 
-class RedisCacheTests(unittest.TestCase):
+class RedisCacheTests(TestCase):
     """
     A common set of tests derived from Django's own cache tests
 
     """
     def setUp(self):
         # use DB 16 for testing and hope there isn't any important data :->
+        self.reset_pool()
         self.cache = self.get_cache()
 
     def tearDown(self):
@@ -53,6 +55,35 @@ class RedisCacheTests(unittest.TestCase):
         self.assertEqual(self.cache._cache.db, 1)
         self.assertEqual(self.cache._cache.port, 6379)
 
+    def reset_pool(self):
+        if hasattr(self, 'cache'):
+            self.cache._client.connection_pool.disconnect()
+
+    def get_cache(self, backend=None):
+        if VERSION[0] == 1 and VERSION[1] < 3:
+            cache = get_cache(backend or 'redis_cache.cache://127.0.0.1:6379?db=15')
+        elif VERSION[0] == 1 and VERSION[1] >= 3:
+            cache = get_cache(backend or 'default')
+        return cache
+
+    def test_bad_db_initialization(self):
+        self.assertRaises(ImproperlyConfigured, self.get_cache, 'redis_cache.cache://127.0.0.1:6379?db=not_a_number')
+
+    def test_bad_port_initialization(self):
+        self.assertRaises(ImproperlyConfigured, self.get_cache, 'redis_cache.cache://127.0.0.1:not_a_number?db=15')
+
+    def test_default_initialization(self):
+        self.reset_pool()
+        if VERSION[0] == 1 and VERSION[1] < 3:
+            self.cache = self.get_cache('redis_cache.cache://')
+        elif VERSION[0] == 1 and VERSION[1] >= 3:
+            self.cache = self.get_cache('redis_cache.cache.CacheClass')
+        connection_class = self.cache._client.connection_pool.connection_class
+        if connection_class is not UnixDomainSocketConnection:
+            self.assertEqual(self.cache._client.connection_pool.connection_kwargs['host'], '127.0.0.1')
+            self.assertEqual(self.cache._client.connection_pool.connection_kwargs['port'], 6379)
+        self.assertEqual(self.cache._client.connection_pool.connection_kwargs['db'], 15)
+
     def test_simple(self):
         # Simple cache set/get works
         self.cache.set("key", "value")
@@ -79,6 +110,20 @@ class RedisCacheTests(unittest.TestCase):
         self.cache.set('d', 'd')
         self.assertEqual(self.cache.get_many(['a', 'c', 'd']), {'a' : 'a', 'c' : 'c', 'd' : 'd'})
         self.assertEqual(self.cache.get_many(['a', 'b', 'e']), {'a' : 'a', 'b' : 'b'})
+
+    def test_get_many_with_manual_integer_insertion(self):
+        keys = ['a', 'b', 'c', 'd']
+        cache_keys = map(self.cache.make_key, keys)
+        # manually set integers and then get_many
+        for i, key in enumerate(cache_keys):
+            self.cache._client.set(key, i)
+        self.assertEqual(self.cache.get_many(keys), {'a': 0, 'b': 1, 'c': 2, 'd': 3})
+
+    def test_get_many_with_automatic_integer_insertion(self):
+        keys = ['a', 'b', 'c', 'd']
+        for i, key in enumerate(keys):
+            self.cache.set(key, i)
+        self.assertEqual(self.cache.get_many(keys), {'a': 0, 'b': 1, 'c': 2, 'd': 3})
 
     def test_delete(self):
         # Cache keys can be deleted
@@ -190,37 +235,20 @@ class RedisCacheTests(unittest.TestCase):
 
     def test_set_expiration_timeout_None(self):
         key, value = self.cache.make_key('key'), 'value'
-        self.cache.set(key, value);
-        self.assertTrue(self.cache._cache.ttl(key) > 0)
-
-    def test_set_expiration_timeout_0(self):
-        key, value = self.cache.make_key('key'), 'value'
         self.cache.set(key, value)
-        self.assertTrue(self.cache._cache.ttl(key) > 0)
-        self.cache.expire(key, 0)
-        self.assertEqual(self.cache.get(key), value)
-        self.assertTrue(self.cache._cache.ttl(key) < 0)
+        self.assertTrue(self.cache._client.ttl(key) > 0)
 
-    def test_set_expiration_first_expire_call(self):
+    def test_set_expiration_timeout_zero(self):
         key, value = self.cache.make_key('key'), 'value'
-        # bypass public set api so we don't set the expiration
-        self.cache._cache.set(key, pickle.dumps(value))
-        self.cache.expire('key', 1)
-        time.sleep(2)
-        self.assertEqual(self.cache.get('key'), None)
+        self.cache.set(key, value, timeout=0)
+        self.assertTrue(self.cache._client.ttl(key) is None)
+        self.assertTrue(self.cache.has_key(key))
 
-    def test_set_expiration_mulitple_expire_calls(self):
-        key, value = 'key', 'value'
-        self.cache.set(key, value, 1)
-        time.sleep(2)
-        self.assertEqual(self.cache.get('key'), None)
-        self.cache.set(key, value, 100)
-        self.assertEqual(self.cache.get('key'), value)
-        time.sleep(2)
-        self.assertEqual(self.cache.get('key'), value)
-        self.cache.expire(key, 1)
-        time.sleep(2)
-        self.assertEqual(self.cache.get('key'), None)
+    def test_set_expiration_timeout_negative(self):
+        key, value = self.cache.make_key('key'), 'value'
+        self.cache.set(key, value, timeout=-1)
+        self.assertTrue(self.cache._client.ttl(key) is None)
+        self.assertFalse(self.cache.has_key(key))
 
     def test_unicode(self):
         # Unicode values can be cached
@@ -303,6 +331,42 @@ class RedisCacheTests(unittest.TestCase):
             self.assertEqual(self.cache.get(old_key), None)
             self.assertEqual(self.cache.get(new_key), 'spam')
 
+    def test_incr_with_pickled_integer(self):
+        "Testing case where there exists a pickled integer and we increment it"
+        number = 42
+        key = self.cache.make_key("key")
+
+        # manually set value using the redis client
+        self.cache._client.set(key, pickle.dumps(number))
+        new_value = self.cache.incr(key)
+        self.assertEqual(new_value, number + 1)
+
+        # Test that the pickled value was converted to an integer
+        value = int(self.cache._client.get(key))
+        self.assertTrue(isinstance(value, int))
+
+        # now that the value is an integer, let's increment it again.
+        new_value = self.cache.incr(key, 7)
+        self.assertEqual(new_value, number + 8)
+
+    def test_pickling_cache_object(self):
+        p = pickle.dumps(self.cache)
+        cache = pickle.loads(p)
+        # Now let's do a simple operation using the unpickled cache object
+        cache.add("addkey1", "value")
+        result = cache.add("addkey1", "newvalue")
+        self.assertEqual(result, False)
+        self.assertEqual(cache.get("addkey1"), "value")
+
+    def test_float_caching(self):
+        self.cache.set('a', 1.1)
+        a = self.cache.get('a')
+        self.assertEqual(a, 1.1)
+
+    def test_string_float_caching(self):
+        self.cache.set('a', '1.1')
+        a = self.cache.get('a')
+        self.assertEqual(a, 1.1)
 
 if __name__ == '__main__':
     unittest.main()
