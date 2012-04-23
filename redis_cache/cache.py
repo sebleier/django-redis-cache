@@ -38,12 +38,15 @@ class CacheKey(object):
 
 
 class CacheConnectionPool(object):
-    _connection_pool = None
+
+    def __init__(self):
+        self._connection_pools = {}
 
     def get_connection_pool(self, host='127.0.0.1', port=6379, db=1,
         password=None, parser_class=None,
         unix_socket_path=None):
-        if self._connection_pool is None:
+        connection_identifier = (host, port, db, parser_class, unix_socket_path)
+        if not self._connection_pools.get(connection_identifier):
             connection_class = (
                 unix_socket_path and UnixDomainSocketConnection or Connection
             )
@@ -60,9 +63,26 @@ class CacheConnectionPool(object):
                 })
             else:
                 kwargs['path'] = unix_socket_path
-            self._connection_pool = redis.ConnectionPool(**kwargs)
-        return self._connection_pool
+            self._connection_pools[connection_identifier] = redis.ConnectionPool(**kwargs)
+        return self._connection_pools[connection_identifier]
 pool = CacheConnectionPool()
+
+
+class CacheKey(object):
+    """
+    A stub string class that we can use to check if a key was created already.
+    """
+    def __init__(self, key):
+        self._key = key
+
+    def __eq__(self, other):
+        return self._key == other
+
+    def __str__(self):
+        return self.__unicode__()
+
+    def __unicode__(self):
+        return smart_str(self._key)
 
 
 class CacheClass(BaseCache):
@@ -241,6 +261,13 @@ class CacheClass(BaseCache):
         value = smart_str(value)
         return pickle.loads(value)
 
+    def unpickle(self, value):
+        """
+        Unpickles the given value.
+        """
+        value = smart_str(value)
+        return pickle.loads(value)
+
     def get_many(self, keys, version=None):
         """
         Retrieve many keys.
@@ -292,6 +319,16 @@ class CacheClass(BaseCache):
             self.set(key, value)
         return value
 
+
+class RedisCache(CacheClass):
+    """
+    A subclass that is supposed to be used on Django >= 1.3.
+    """
+
+    def make_key(self, key, version=None):
+        if not isinstance(key, CacheKey):
+            key = CacheKey(super(CacheClass, self).make_key(key, version))
+        return key
 
 class RedisCache(CacheClass):
     """
