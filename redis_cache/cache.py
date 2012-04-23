@@ -65,23 +65,6 @@ class CacheConnectionPool(object):
 pool = CacheConnectionPool()
 
 
-class CacheKey(object):
-    """
-    A stub string class that we can use to check if a key was created already.
-    """
-    def __init__(self, key):
-        self._key = key
-
-    def __eq__(self, other):
-        return self._key == other
-
-    def __str__(self):
-        return self.__unicode__()
-
-    def __unicode__(self):
-        return smart_str(self._key)
-
-
 class CacheClass(BaseCache):
     def __init__(self, server, params):
         """
@@ -258,13 +241,6 @@ class CacheClass(BaseCache):
         value = smart_str(value)
         return pickle.loads(value)
 
-    def unpickle(self, value):
-        """
-        Unpickles the given value.
-        """
-        value = smart_str(value)
-        return pickle.loads(value)
-
     def get_many(self, keys, version=None):
         """
         Retrieve many keys.
@@ -316,16 +292,6 @@ class CacheClass(BaseCache):
             self.set(key, value)
         return value
 
-
-class RedisCache(CacheClass):
-    """
-    A subclass that is supposed to be used on Django >= 1.3.
-    """
-
-    def make_key(self, key, version=None):
-        if not isinstance(key, CacheKey):
-            key = CacheKey(super(CacheClass, self).make_key(key, version))
-        return key
 
 class RedisCache(CacheClass):
     """

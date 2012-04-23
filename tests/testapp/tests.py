@@ -32,28 +32,6 @@ class RedisCacheTests(TestCase):
 
     def tearDown(self):
         self.cache.clear()
-        self.cache.close()
-
-    def get_cache(self, backend=None):
-        if VERSION[0] == 1 and VERSION[1] < 3:
-            cache = get_cache(backend or 'redis_cache.cache://127.0.0.1:6379?db=15')
-        elif VERSION[0] == 1 and VERSION[1] >= 3:
-            cache = get_cache(backend or 'default')
-        return cache
-
-    def test_bad_db_initialization(self):
-        self.cache = self.get_cache('redis_cache.cache://127.0.0.1:6379?db=not_a_number')
-        self.assertEqual(self.cache._cache.db, 1)
-
-    def test_bad_port_initialization(self):
-        self.cache = self.get_cache('redis_cache.cache://127.0.0.1:not_a_number?db=15')
-        self.assertEqual(self.cache._cache.port, 6379)
-
-    def test_default_initialization(self):
-        self.cache = self.get_cache('redis_cache.cache://127.0.0.1')
-        self.assertEqual(self.cache._cache.host, '127.0.0.1')
-        self.assertEqual(self.cache._cache.db, 1)
-        self.assertEqual(self.cache._cache.port, 6379)
 
     def reset_pool(self):
         if hasattr(self, 'cache'):
