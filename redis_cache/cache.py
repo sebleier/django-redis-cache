@@ -79,7 +79,7 @@ class CacheClass(BaseCache):
 
         unix_socket_path = None
         if ':' in self.server:
-            host, port = self.server.split(':')
+            host, port = self.server.rsplit(':', 1)
             try:
                 port = int(port)
             except (ValueError, TypeError):
