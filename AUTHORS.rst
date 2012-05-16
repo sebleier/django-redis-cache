@@ -10,3 +10,4 @@ Ales Zoulek / aleszoulek <https://github.com/aleszoulek>
 James Aylett / jaylett <https://github.com/jaylett>
 Todd Boland / boland <https://github.com/boland>
 Issac Kelly / issackelly <https://github.com/issackelly>
+Saverio / mucca <https://github.com/mucca>
