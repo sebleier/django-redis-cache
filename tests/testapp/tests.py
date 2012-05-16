@@ -10,8 +10,9 @@ from django import VERSION
 from django.core.cache import get_cache
 from django.test import TestCase
 from models import Poll, expensive_calculation
-from redis_cache.cache import RedisCache, ImproperlyConfigured
+from redis_cache.cache import RedisCache, ImproperlyConfigured, pool
 from redis.connection import UnixDomainSocketConnection
+
 
 # functions/classes for complex data type tests
 def f():
@@ -60,7 +61,7 @@ class RedisCacheTests(TestCase):
         if connection_class is not UnixDomainSocketConnection:
             self.assertEqual(self.cache._client.connection_pool.connection_kwargs['host'], '127.0.0.1')
             self.assertEqual(self.cache._client.connection_pool.connection_kwargs['port'], 6379)
-        self.assertEqual(self.cache._client.connection_pool.connection_kwargs['db'], 15)
+        self.assertEqual(self.cache._client.connection_pool.connection_kwargs['db'], 1)
 
     def test_simple(self):
         # Simple cache set/get works
@@ -345,6 +346,16 @@ class RedisCacheTests(TestCase):
         self.cache.set('a', '1.1')
         a = self.cache.get('a')
         self.assertEqual(a, 1.1)
+
+    def test_multiple_connection_pool_connections(self):
+        pool._connection_pools = {}
+        c1 = get_cache('redis_cache.cache://127.0.0.1:6379?db=15')
+        self.assertEqual(len(pool._connection_pools), 1)
+        c2 = get_cache('redis_cache.cache://127.0.0.1:6379?db=14')
+        self.assertEqual(len(pool._connection_pools), 2)
+        c3 = get_cache('redis_cache.cache://127.0.0.1:6379?db=15')
+        self.assertEqual(len(pool._connection_pools), 2)
+
 
 if __name__ == '__main__':
     unittest.main()

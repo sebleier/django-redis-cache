@@ -17,6 +17,7 @@ except ImportError:
 from redis.connection import UnixDomainSocketConnection, Connection
 from redis.connection import DefaultParser
 
+
 class CacheKey(object):
     """
     A stub string class that we can use to check if a key was created already.
