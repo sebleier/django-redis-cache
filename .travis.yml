@@ -23,4 +23,4 @@ branches:
     - experimental
 
 
-script: travis_run_all_tests
+script: travis_run_all_tests.sh
