@@ -1,14 +1,5 @@
-DEBUG = True
+from .base_settings import *
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-    }
-}
-
-INSTALLED_APPS = [
-    'tests.testapp',
-]
 
 CACHES = {
     'default': {
@@ -17,8 +8,7 @@ CACHES = {
         'OPTIONS': { # optional
             'DB': 15,
             'PASSWORD': 'yadayada',
+            'PARSER_CLASS': 'redis.connection.HiredisParser',
         },
     },
 }
-
-ROOT_URLCONF = 'tests.urls'
