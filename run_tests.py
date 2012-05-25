@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from __future__ import with_statement
 from optparse import OptionParser
 import os
 from os.path import dirname, abspath, join
