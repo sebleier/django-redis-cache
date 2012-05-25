@@ -16,9 +16,9 @@ env:
 install:
   - pip install Django==$DJANGO_VERSION
   - pip install -e git://github.com/sebleier/redis-py.git#egg=redis-py
-  - install_redis.sh
+  - ./install_redis.sh
 branches:
   only:
     - master
     - experimental
-script: travis_run_all_tests.sh
+script: ./travis_run_all_tests.sh
