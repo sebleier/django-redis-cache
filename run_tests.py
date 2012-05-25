@@ -50,7 +50,7 @@ def runtests(options):
 
     redis_conf_path = options.conf or join(dirname(__file__), 'tests', 'redis.conf')
 
-    server.configure(options.server_path, redis_conf_path, 1)
+    server.configure(options.server_path, redis_conf_path, 0)
 
     try:
         redis_conf_template = open(join(dirname(__file__), 'tests' ,'redis.conf.tpl')).read()
