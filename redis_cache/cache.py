@@ -80,6 +80,7 @@ class CacheClass(BaseCache):
         super(CacheClass, self).__init__(params)
         self._server = server
         self._params = params
+        self._pickle_version = None
 
         unix_socket_path = None
         if ':' in self.server:
@@ -146,6 +147,20 @@ class CacheClass(BaseCache):
             raise ImproperlyConfigured("Could not find parser class '%s'" % parser_class)
         return parser_class
 
+    @property
+    def pickle_version(self):
+        """
+        Get the pickle version from the settings and save it for future use
+        """
+        if self._pickle_version is None:
+            _pickle_version = self.options.get('PICKLE_VERSION', 0)
+            try:
+                _pickle_version = int(_pickle_version)
+            except (ValueError, TypeError):
+                raise ImproperlyConfigured("pickle version value must be an integer")
+            self._pickle_version = _pickle_version
+        return self._pickle_version
+
     def __getstate__(self):
         return {'params': self._params, 'server': self._server}
 
@@ -211,7 +226,7 @@ class CacheClass(BaseCache):
             if int(value) != value:
                 raise TypeError
         except (ValueError, TypeError):
-            result = self._set(key, pickle.dumps(value), int(timeout), client)
+            result = self._set(key, self.pickle(value), int(timeout), client)
         else:
             result = self._set(key, int(value), int(timeout), client)
         # result is a boolean
@@ -244,6 +259,12 @@ class CacheClass(BaseCache):
         """
         value = smart_str(value)
         return pickle.loads(value)
+
+    def pickle(self, value):
+        """
+        Pickle the given value.
+        """
+        return pickle.dumps(value, self.pickle_version)
 
     def get_many(self, keys, version=None):
         """

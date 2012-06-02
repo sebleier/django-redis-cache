@@ -51,7 +51,8 @@ On Django >= 1.3::
             'OPTIONS': {
                 'DB': 1,
                 'PASSWORD': 'yadayada',
-                'PARSER_CLASS': 'redis.connection.HiredisParser'
+                'PARSER_CLASS': 'redis.connection.HiredisParser',
+                'PICKLE_VERSION': 2 # optional, default to 0
             },
         },
     }
@@ -66,7 +67,8 @@ On Django >= 1.3::
             'OPTIONS': {
                 'DB': 1,
                 'PASSWORD': 'yadayada',
-                'PARSER_CLASS': 'redis.connection.HiredisParser'
+                'PARSER_CLASS': 'redis.connection.HiredisParser',
+                'PICKLE_VERSION': 2 # optional, default to 0
             },
         },
     }
