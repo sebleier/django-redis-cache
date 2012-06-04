@@ -188,6 +188,23 @@ class CacheClass(BaseCache):
             result = self.unpickle(value)
         return result
 
+    def hget(self, name, key, default=None, version=None):
+        """
+        Retrieve a value from the cache as hash.
+
+        Returns unpickled value if key is found, the default if not.
+        """
+        name = self.make_key(name, version=version)
+        key = self.make_key(key, version=version)
+        value = self._client.hget(name, key)
+        if value is None:
+            return default
+        try:
+            result = int(value)
+        except (ValueError, TypeError):
+            result = self.unpickle(value)
+        return result
+
     def _set(self, key, value, timeout, client):
         if timeout == 0:
             return client.set(key, value)
@@ -195,6 +212,15 @@ class CacheClass(BaseCache):
             return client.setex(key, value, int(timeout))
         else:
             return False
+
+    def _hset(self, name, key, value, timeout, client):
+        """Set value in hash"""
+        # Redis call
+        status = client.hset( name, key, value)
+        if timeout > 0:
+            # Set expire time
+            client.expire(name, timeout)
+        return status
 
     def set(self, key, value, timeout=None, version=None, client=None):
         """
@@ -214,6 +240,30 @@ class CacheClass(BaseCache):
             result = self._set(key, pickle.dumps(value), int(timeout), client)
         else:
             result = self._set(key, int(value), int(timeout), client)
+        # result is a boolean
+        return result
+
+    def hset(self, outerk, hashk, value, timeout=None, version=None, client=None):
+        """
+        Sets field in the hash stored at key to value 
+        and set an optional expiration time.
+        """
+        if not client:
+            client = self._client
+        outerk = self.make_key(outerk, version=version)
+        hashk = self.make_key(hashk, version=version)
+        if timeout is None:
+            # To store it persistently
+            timeout = 0
+        try:
+            value = float(value)
+            # If you lose precision from the typecast to str, then pickle value
+            if int(value) != value:
+                raise TypeError
+        except (ValueError, TypeError):
+            result = self._hset(outerk, hashk, pickle.dumps(value), int(timeout), client)
+        else:
+            result = self._hset(outerk, hashk, int(value), int(timeout), client)
         # result is a boolean
         return result
 
@@ -267,6 +317,29 @@ class CacheClass(BaseCache):
             recovered_data[map_keys[key]] = value
         return recovered_data
 
+    def hget_many(self, name, keys, version=None):
+        """
+        Retrieve many keys from hash.
+        Keys is the list of the key in the hash.
+        Result is returned as key value pair dict. 
+        """
+        recovered_data = SortedDict()
+        new_keys = map(lambda key: self.make_key(key, version=version), keys)
+        # Redis call
+        results = self._client.hmget(name, keys)
+        # Iterate to convert the result into proper format.
+        for key, value in zip(new_keys, results):
+            if value is None:
+                continue
+            try:
+                value = int(value)
+            except (ValueError, TypeError):
+                value = self.unpickle(value)
+            if isinstance(value, basestring):
+                value = smart_unicode(value)
+            recovered_data[key] = value
+        return recovered_data
+
     def set_many(self, data, timeout=None, version=None):
         """
         Set a bunch of values in the cache at once from a dict of key/value
@@ -279,6 +352,35 @@ class CacheClass(BaseCache):
         for key, value in data.iteritems():
             self.set(key, value, timeout, version=version, client=pipeline)
         pipeline.execute()
+
+
+    def hset_many(self, name, mapping_dict, timeout=None, version=None):
+        """
+        Set a bunch of values in the cache at once from a dict of key/value
+        pairs. This is much more efficient than calling hset() multiple times.
+
+        If timeout is given, that timeout will be used for the key; otherwise 
+        stored persistently
+        """
+        # Iterate to convert the values to appropriate format.
+        for key, value in mapping_dict.items():
+            try:
+                value = float(value)
+                # If you lose precision from the typecast to str, then pickle value
+                if int(value) != value:
+                    raise TypeError
+            except (ValueError, TypeError):
+                value = pickle.dumps(value)
+            else:
+                value = int(value)
+            mapping_dict[key] = value
+
+        # Redis call
+        result = self._client.hmset(name, mapping_dict)
+        if timeout is not None: 
+            # Set timeout of the name
+            self._client.expire(name, timeout)
+        return result
 
     def incr(self, key, delta=1, version=None):
         """
@@ -296,6 +398,24 @@ class CacheClass(BaseCache):
             self.set(key, value)
         return value
 
+    def hincr(self, name, key, delta=1, version=None):
+        """
+        Add delta to value in the cache of the hash. 
+        If the key does not exist, raise a
+        ValueError exception.
+        """
+        key = self.make_key(key, version=version)
+        exists = self._client.exists(key)
+        if not exists:
+            raise ValueError("Key '%s' not found" % key)
+        try:
+            # Redis call
+            value = self._client.hincr(name, key, delta)
+        except redis.ResponseError:
+            value = self.hget(name, key) + 1
+            # Redis call
+            self.hset(name, key, value)
+        return value
 
 class RedisCache(CacheClass):
     """
