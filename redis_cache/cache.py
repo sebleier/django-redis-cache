@@ -325,8 +325,10 @@ class CacheClass(BaseCache):
         """
         recovered_data = SortedDict()
         new_keys = map(lambda key: self.make_key(key, version=version), keys)
+        map_keys = dict(zip(new_keys, keys))
+        name = self.make_key(name, version=version)
         # Redis call
-        results = self._client.hmget(name, keys)
+        results = self._client.hmget(name, new_keys)
         # Iterate to convert the result into proper format.
         for key, value in zip(new_keys, results):
             if value is None:
@@ -337,7 +339,7 @@ class CacheClass(BaseCache):
                 value = self.unpickle(value)
             if isinstance(value, basestring):
                 value = smart_unicode(value)
-            recovered_data[key] = value
+            recovered_data[map_keys[key]] = value
         return recovered_data
 
     def set_many(self, data, timeout=None, version=None):
@@ -362,6 +364,9 @@ class CacheClass(BaseCache):
         If timeout is given, that timeout will be used for the key; otherwise 
         stored persistently
         """
+        # Convert the keys to version format
+        mapping_dict = dict( (self.make_key(key, version), value) for key, value in  mapping_dict.items() )
+        name = self.make_key(name, version=version)
         # Iterate to convert the values to appropriate format.
         for key, value in mapping_dict.items():
             try:
@@ -416,6 +421,14 @@ class CacheClass(BaseCache):
             # Redis call
             self.hset(name, key, value)
         return value
+
+    def has_hkey(self, name, key, version=None):
+        """
+        The name and key exist in the hash
+        """
+        name = self.make_key(name, version=version)
+        key = self.make_key(key, version=version)
+        return self._client.hexists(name, key)
 
 class RedisCache(CacheClass):
     """
