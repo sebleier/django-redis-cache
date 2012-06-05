@@ -311,7 +311,7 @@ class RedisCacheTests(TestCase):
             self.assertEqual(self.cache.get(new_key), 'spam')
 
     def test_incr_with_pickled_integer(self):
-        "Testing case where there exists a pickled integer and we increment it"
+        #Testing case where there exists a pickled integer and we increment it
         number = 42
         key = self.cache.make_key("key")
 
@@ -356,6 +356,92 @@ class RedisCacheTests(TestCase):
         c3 = get_cache('redis_cache.cache://127.0.0.1:6379?db=15')
         self.assertEqual(len(pool._connection_pools), 2)
 
+    def test_hset(self):
+        # Set in a hash
+        self.cache.hset('a', 'a1', 'A')
+        self.assertEqual(self.cache.hget('a','a1'),'A')
+
+    def test_float_hcaching(self):
+        # Set float value in a hash
+        self.cache.hset('a', 'a1', 1.1)
+        a = self.cache.hget('a', 'a1')
+        self.assertEqual(a, 1.1)
+
+    def test_string_float_hcaching(self):
+        self.cache.hset('a', 'a1', '1.1')
+        a = self.cache.hget('a','a1')
+        self.assertEqual(a, 1.1)
+
+    def test_hget_many(self):
+        # Multiple cache keys can be returned using get_many
+        self.cache.hset('a', 'a1', 'A1')
+        self.cache.hset('a', 'a2', 'A2')
+        self.cache.hset('a', 'a3', 'A3')
+        self.assertEqual(self.cache.hget_many('a',['a1','a2']), {'a1': 'A1', 'a2': 'A2'})
+        self.assertEqual(self.cache.hget_many('a',['a3']), {'a3': 'A3'})
+
+    def test_hset_many(self):
+        # Multiple cache keys can be set using hset_many in one call
+        self.cache.hset_many('a', {'a1':'A1', 'a2':'A2', 'a3':'A3'})
+        self.assertEqual(self.cache.hget_many('a',['a1','a2']), {'a1': 'A1', 'a2': 'A2'})
+        self.assertEqual(self.cache.hget('a','a1'), 'A1') 
+
+    def test_hexpiration(self):
+        # Cache values can be set to expire
+        self.cache.hset('expire1', 'key1', 1, 1)
+        self.cache.hset('expire2', 'key2', 1, 1)
+        self.cache.hset('expire3', 'key3', 1, 1)
+
+        time.sleep(2)
+        self.assertEqual(self.cache.hget("expire1","key1"), None)
+
+        self.cache.hset("expire2", "key2", "newvalue")
+        self.assertEqual(self.cache.hget("expire2", "key2"), "newvalue")
+
+    def test_hset_expiration_timeout_None(self):
+        key, value = self.cache.make_key('key'), 'value'
+        self.cache.hset(key, 'a', value)
+        self.assertTrue(self.cache._client.ttl(key) is None)
+
+    def test_hset_expiration_timeout_zero(self):
+        key, value = self.cache.make_key('key'), 'value'
+        self.cache.hset(key, 'a', value, timeout=0)
+        self.assertTrue(self.cache._client.ttl(key) is None)
+        self.assertTrue(self.cache.has_hkey(key,'a'))
+
+    def test_hset_expiration_timeout_negative(self):
+        key, value = self.cache.make_key('key'), 'value'
+        self.cache.hset(key, 'a', value, timeout=-1)
+        self.assertTrue(self.cache._client.ttl(key) is None)
+
+    def test_hash_unicode(self):
+        # Unicode values can be cached
+        stuff = {
+            u'ascii': (u'key1',u'ascii_value'),
+            u'unicode_ascii': (u'key2',u'Iñtërnâtiônàlizætiøn1'),
+            u'Iñtërnâtiônàlizætiøn': (u'key3',u'Iñtërnâtiônàlizætiøn2'),
+            u'ascii': (u'key4',{u'x' : 1 })
+        }
+        for (key, value) in stuff.items():
+            self.cache.hset(key, value[0], value[1])
+            self.assertEqual(self.cache.hget(key, value[0]), value[1])
+
+    def test_hash_binary_string(self):
+        # Binary strings should be cachable
+        from zlib import compress, decompress
+        value = 'value_to_be_compressed'
+        compressed_value = compress(value)
+        self.cache.hset('binary1', 'b1', compressed_value)
+        compressed_result = self.cache.hget('binary1','b1')
+        self.assertEqual(compressed_value, compressed_result)
+        self.assertEqual(value, decompress(compressed_result))
+
+    def test_has_hkey(self):
+        # Presence of hash key
+        self.cache.hset('A','A1',100)
+        self.assertEqual(self.cache.has_hkey('A','A1'),True)
+        self.assertEqual(self.cache.has_hkey('B','B1'),False)
+        self.assertEqual(self.cache.has_hkey('A','A10'),False)
 
 if __name__ == '__main__':
     unittest.main()
