@@ -243,15 +243,15 @@ class CacheClass(BaseCache):
         # result is a boolean
         return result
 
-    def hset(self, outerk, hashk, value, timeout=None, version=None, client=None):
+    def hset(self, name, key, value, timeout=None, version=None, client=None):
         """
         Sets field in the hash stored at key to value 
         and set an optional expiration time.
         """
         if not client:
             client = self._client
-        outerk = self.make_key(outerk, version=version)
-        hashk = self.make_key(hashk, version=version)
+        name = self.make_key(name, version=version)
+        key = self.make_key(key, version=version)
         if timeout is None:
             # To store it persistently
             timeout = 0
@@ -261,9 +261,9 @@ class CacheClass(BaseCache):
             if int(value) != value:
                 raise TypeError
         except (ValueError, TypeError):
-            result = self._hset(outerk, hashk, pickle.dumps(value), int(timeout), client)
+            result = self._hset(name, key, pickle.dumps(value), int(timeout), client)
         else:
-            result = self._hset(outerk, hashk, int(value), int(timeout), client)
+            result = self._hset(name, key, int(value), int(timeout), client)
         # result is a boolean
         return result
 
@@ -409,13 +409,14 @@ class CacheClass(BaseCache):
         If the key does not exist, raise a
         ValueError exception.
         """
+        name = self.make_key(name, version=version)
         key = self.make_key(key, version=version)
-        exists = self._client.exists(key)
+        exists = self._client.hexists(name, key)
         if not exists:
             raise ValueError("Key '%s' not found" % key)
         try:
             # Redis call
-            value = self._client.hincr(name, key, delta)
+            value = self._client.hincrby(name, key, delta)
         except redis.ResponseError:
             value = self.hget(name, key) + 1
             # Redis call
