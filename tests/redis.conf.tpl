@@ -27,7 +27,7 @@ port 6380
 # If you want you can bind a single interface, if the bind option is not
 # specified all the interfaces will listen for incoming connections.
 #
-# bind 127.0.0.1
+bind 127.0.0.1
 
 # Specify the path for the unix socket that will be used to listen for
 # incoming connections. There is no default, so Redis will not listen
@@ -209,7 +209,7 @@ slave-read-only yes
 # 150k passwords per second against a good box. This means that you should
 # use a very strong password otherwise it will be very easy to break.
 #
-# requirepass foobared
+requirepass yadayada
 
 # Command renaming.
 #

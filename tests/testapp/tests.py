@@ -7,12 +7,13 @@ try:
 except ImportError:
     import pickle
 from django import VERSION
+from django.conf import settings
 from django.core.cache import get_cache
 from django.test import TestCase
 from models import Poll, expensive_calculation
 from redis_cache.cache import RedisCache, ImproperlyConfigured, pool
 from redis.connection import UnixDomainSocketConnection
-
+from redis.server import server
 
 # functions/classes for complex data type tests
 def f():
@@ -30,8 +31,14 @@ class RedisCacheTests(TestCase):
         # use DB 16 for testing and hope there isn't any important data :->
         self.reset_pool()
         self.cache = self.get_cache()
+        self.cache._client.config_set('requirepass', settings.CACHES['default']['OPTIONS']['PASSWORD'])
 
     def tearDown(self):
+        # Sometimes it will be necessary to skip this method because we need to test default
+        # initialization and that may be using a different port than the test redis server.
+        if hasattr(self, '_skip_tearDown') and self._skip_tearDown:
+            self._skip_tearDown = False
+            return
         self.cache.clear()
 
     def reset_pool(self):
@@ -40,16 +47,16 @@ class RedisCacheTests(TestCase):
 
     def get_cache(self, backend=None):
         if VERSION[0] == 1 and VERSION[1] < 3:
-            cache = get_cache(backend or 'redis_cache.cache://127.0.0.1:6379?db=15')
+            cache = get_cache(backend or 'redis_cache.cache://%s:%s?db=15' % (server.host, server.port))
         elif VERSION[0] == 1 and VERSION[1] >= 3:
             cache = get_cache(backend or 'default')
         return cache
 
     def test_bad_db_initialization(self):
-        self.assertRaises(ImproperlyConfigured, self.get_cache, 'redis_cache.cache://127.0.0.1:6379?db=not_a_number')
+        self.assertRaises(ImproperlyConfigured, self.get_cache, 'redis_cache.cache://%s:%s?db=not_a_number' % (server.host, server.port))
 
     def test_bad_port_initialization(self):
-        self.assertRaises(ImproperlyConfigured, self.get_cache, 'redis_cache.cache://127.0.0.1:not_a_number?db=15')
+        self.assertRaises(ImproperlyConfigured, self.get_cache, 'redis_cache.cache://%s:not_a_number?db=15' % server.host)
 
     def test_default_initialization(self):
         self.reset_pool()
@@ -61,6 +68,7 @@ class RedisCacheTests(TestCase):
         if connection_class is not UnixDomainSocketConnection:
             self.assertEqual(self.cache._client.connection_pool.connection_kwargs['host'], '127.0.0.1')
             self.assertEqual(self.cache._client.connection_pool.connection_kwargs['port'], 6379)
+            self._skip_tearDown = True
         self.assertEqual(self.cache._client.connection_pool.connection_kwargs['db'], 1)
 
     def test_simple(self):
@@ -349,11 +357,11 @@ class RedisCacheTests(TestCase):
 
     def test_multiple_connection_pool_connections(self):
         pool._connection_pools = {}
-        c1 = get_cache('redis_cache.cache://127.0.0.1:6379?db=15')
+        c1 = get_cache('redis_cache.cache://%s:%s?db=15' % (server.host, server.port))
         self.assertEqual(len(pool._connection_pools), 1)
-        c2 = get_cache('redis_cache.cache://127.0.0.1:6379?db=14')
+        c2 = get_cache('redis_cache.cache://%s:%s?db=14' % (server.host, server.port))
         self.assertEqual(len(pool._connection_pools), 2)
-        c3 = get_cache('redis_cache.cache://127.0.0.1:6379?db=15')
+        c3 = get_cache('redis_cache.cache://%s:%s?db=15' % (server.host, server.port))
         self.assertEqual(len(pool._connection_pools), 2)
 
 
