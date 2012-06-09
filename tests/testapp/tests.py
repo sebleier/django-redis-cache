@@ -31,7 +31,6 @@ class RedisCacheTests(TestCase):
         # use DB 16 for testing and hope there isn't any important data :->
         self.reset_pool()
         self.cache = self.get_cache()
-        self.cache._client.config_set('requirepass', settings.CACHES['default']['OPTIONS']['PASSWORD'])
 
     def tearDown(self):
         # Sometimes it will be necessary to skip this method because we need to test default
@@ -67,7 +66,7 @@ class RedisCacheTests(TestCase):
         connection_class = self.cache._client.connection_pool.connection_class
         if connection_class is not UnixDomainSocketConnection:
             self.assertEqual(self.cache._client.connection_pool.connection_kwargs['host'], '127.0.0.1')
-            self.assertEqual(self.cache._client.connection_pool.connection_kwargs['port'], 6379)
+            self.assertEqual(self.cache._client.connection_pool.connection_kwargs['port'], 6379 )
             self._skip_tearDown = True
         self.assertEqual(self.cache._client.connection_pool.connection_kwargs['db'], 1)
 

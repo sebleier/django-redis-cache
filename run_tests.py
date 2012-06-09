@@ -8,6 +8,7 @@ from django.conf import settings
 from django.template import Template, Context
 from django.utils import importlib
 from redis.server import server
+from redis import Redis
 
 
 def load_settings(module):
@@ -40,17 +41,15 @@ class TmpFile(object):
 def runtests(options):
     os.environ['DJANGO_SETTINGS_MODULE'] = options.settings
 
+    redis_conf_path = options.conf or join(dirname(__file__), 'tests', 'redis.conf')
+
+    server.configure(options.server_path, redis_conf_path, 0)
+
     conf = load_settings(options.settings)
 
     if conf is None:
         sys.stderr.write('Cannot load settings module: %s\n' % options.settings)
         return sys.exit(1)
-
-    settings.configure(**conf)
-
-    redis_conf_path = options.conf or join(dirname(__file__), 'tests', 'redis.conf')
-
-    server.configure(options.server_path, redis_conf_path, 1)
 
     try:
         redis_conf_template = open(join(dirname(__file__), 'tests' ,'redis.conf.tpl')).read()
@@ -63,6 +62,10 @@ def runtests(options):
     contents = Template(redis_conf_template).render(context)
 
     with TmpFile(redis_conf_path, contents):
+        conf['CACHES']['default']['LOCATION'] = "%s:%s" % (server.host, server.port)
+        from django.utils.functional import LazyObject, empty
+        settings._wrapped = empty
+        settings.configure(**conf)
         with server:
             from django.test.simple import DjangoTestSuiteRunner
             runner = DjangoTestSuiteRunner(verbosity=options.verbosity, interactive=True, failfast=False)
@@ -79,7 +82,7 @@ if __name__ == '__main__':
         help="Path to the redis configuration file.")
     parser.add_option("-v", "--verbosity", dest="verbosity", default=1, type="int",
         help="Change the verbostiy of the redis-server.")
-    parser.add_option("--settings", dest="settings", default="tests.settings",
+    parser.add_option("--settings", dest="settings", default="tests.python_parser_settings",
         help="Django settings module to use for the tests.")
 
     (options, args) = parser.parse_args()
