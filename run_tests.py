@@ -4,6 +4,7 @@ from optparse import OptionParser
 import os
 from os.path import dirname, abspath, join
 import sys
+from django import VERSION
 from django.conf import settings
 from django.template import Template, Context
 from django.utils import importlib
@@ -37,6 +38,17 @@ class TmpFile(object):
 
     def __exit__(self, exc_type, exc_value, traceback):
         os.remove(self.path)
+
+
+def reset_settings():
+    """
+    This is hack to allow settings to be configured again.
+    """
+    if VERSION >= (1, 4, 0):
+        from django.utils.functional import empty
+        settings._wrapped = empty
+    else:
+        settings._wrapped = None
 
 
 def _runtests(host, port, password=None):
@@ -77,10 +89,9 @@ def runtests(options):
         })
         contents = Template(redis_conf_template).render(context)
         with TmpFile(redis_conf_path, contents):
-            from django.utils.functional import LazyObject, empty
             if not is_sockets_test:
                 conf['CACHES']['default']['LOCATION'] = "%s:%s" % (server.host, server.port)
-                settings._wrapped = empty
+                reset_settings()
                 settings.configure(**conf)
             with server:
                 failures = _runtests(server.host, server.port, server.password)
