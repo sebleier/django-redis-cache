@@ -281,6 +281,7 @@ class RedisCacheTests(TestCase):
         self.assertEqual(self.cache.get("key2"), None)
         self.assertEqual(self.cache.get("key3"), "ham")
 
+
     def test_clear(self):
         # The cache can be emptied using clear
         self.cache.set("key1", "spam")
@@ -356,11 +357,12 @@ class RedisCacheTests(TestCase):
 
     def test_multiple_connection_pool_connections(self):
         pool._connection_pools = {}
-        c1 = get_cache('redis_cache.cache://%s:%s?db=15' % (server.host, server.port))
+        options = settings.CACHES['default']['OPTIONS']
+        c1 = get_cache('redis_cache.cache://%s:%s?db=15' % (server.host, server.port), OPTIONS=options)
         self.assertEqual(len(pool._connection_pools), 1)
-        c2 = get_cache('redis_cache.cache://%s:%s?db=14' % (server.host, server.port))
+        c2 = get_cache('redis_cache.cache://%s:%s?db=14' % (server.host, server.port), OPTIONS=options)
         self.assertEqual(len(pool._connection_pools), 2)
-        c3 = get_cache('redis_cache.cache://%s:%s?db=15' % (server.host, server.port))
+        c3 = get_cache('redis_cache.cache://%s:%s?db=15' % (server.host, server.port), OPTIONS=options)
         self.assertEqual(len(pool._connection_pools), 2)
 
 
