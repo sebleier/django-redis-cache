@@ -8,7 +8,6 @@ Usage::
     python benchmark.py master
     python benchamrk.py some-branch
 """
-
 import os
 import sys
 from time import time
@@ -48,12 +47,16 @@ class Benchmark(object):
         pass
 
     def timetrial(self):
+        self.cache = cache.get_cache('default')
+        # Initializing the redis to basic settings
+        self.cache._client.flushall()
         self.setUp()
         start = time()
         self.run()
         t = time() - start
         self.tearDown()
-        return t
+        final_usuage = self.cache._client.info()['used_memory_human']
+        return t, final_usuage
 
     def run(self):
         pass
@@ -63,7 +66,7 @@ class Benchmark(object):
         for benchmark in cls.benchmarks:
             benchmark = benchmark()
             print benchmark.__doc__
-            print "Time: %s" % (benchmark.timetrial())
+            print "Time: %s; Memory: %s" % (benchmark.timetrial())
 
 
 class GetAndSetBenchmark(Benchmark):
@@ -96,6 +99,8 @@ class IncrBenchmark(Benchmark):
             self.values[h(h(i))] = h(i)
             self.ints.append(i)
             self.strings.append(h(i))
+        for k, v in self.values.items():
+            self.cache.set(k, v)
 
     def run(self):
         for i in self.ints:
@@ -116,6 +121,42 @@ class MsetAndMGet(Benchmark):
         self.cache.set_many(self.values)
         value = self.cache.get_many(self.values.keys())
 
+class HGetAndHSetBenchmark(Benchmark):
+    "Settings and Getting Mixed for Hashes"
+
+    def setUp(self):
+        self.cache = cache.get_cache('default')
+        self.values = {}
+        # 100*300 = 30000
+        for i in range(100):
+            self.values[h(i)] = i
+            self.values[h(h(i))] = h(i)
+
+    def run(self):
+        for k, v in self.values.items():
+            for i in range(300):
+                self.cache.hset(k, str(i), v)
+        for k, v in self.values.items():
+            for i in range(300):
+                self.cache.hget(k, str(i))
+
+class HMsetAndHMGet(Benchmark):
+    "Getting and setting many mixed values for Hashes"
+
+    def setUp(self):
+        self.cache = cache.get_cache('default')
+        self.values = {}
+        for i in range(100):
+            self.values[h(i)] = i
+            self.values[h(h(i))] = h(i)
+
+    def run(self):
+        for k, v in self.values.items():
+            mapping_dict = dict( (str(i), v) for i in range(300) )
+            self.cache.hset_many(k, mapping_dict)
+        for k, v in self.values.items():
+            many_keys = [ str(i) for i in range(300) ]
+            self.cache.hget_many(k, many_keys)
 
 if __name__ == "__main__":
     Benchmark.run_benchmarks()
