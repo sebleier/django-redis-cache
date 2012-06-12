@@ -65,7 +65,7 @@ def _runtests(host, port, password=None):
 
 def runtests(options):
     os.environ['DJANGO_SETTINGS_MODULE'] = options.settings
-
+    redis_version = options.redis_version
     is_sockets_test = options.settings == "tests.sockets_settings"
 
     conf = load_settings(options.settings)
@@ -81,7 +81,8 @@ def runtests(options):
         redis_conf_path = options.conf or join(dirname(__file__), 'tests', 'redis.conf')
         server.configure(options.server_path, redis_conf_path, 0)
         try:
-            redis_conf_template = open(join(dirname(__file__), 'tests' ,'redis.conf.tpl')).read()
+            print join(dirname(__file__), 'tests' ,'redis.conf.%s' % redis_version)
+            redis_conf_template = open(join(dirname(__file__), 'tests' ,'redis.conf.%s' % redis_version)).read()
         except OSError, IOError:
             sys.stderr.write('Cannot find template for redis.conf.\n')
         context = Context({
@@ -108,6 +109,7 @@ if __name__ == '__main__':
         help="Change the verbostiy of the redis-server.")
     parser.add_option("--settings", dest="settings", default="tests.python_parser_settings",
         help="Django settings module to use for the tests.")
+    parser.add_option("--redis-version", dest="redis_version", default="2.6", help="Redis version")
 
     (options, args) = parser.parse_args()
 
