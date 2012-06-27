@@ -28,14 +28,10 @@ class CacheKey(object):
     def __eq__(self, other):
         return self._key == other
 
-    def __str__(self):
-        return self.__unicode__()
-
-    def __repr__(self):
-        return self.__unicode__()
-
     def __unicode__(self):
         return smart_str(self._key)
+
+    __repr__ = __str__ = __unicode__
 
 
 class CacheConnectionPool(object):
@@ -44,8 +40,8 @@ class CacheConnectionPool(object):
         self._connection_pools = {}
 
     def get_connection_pool(self, host='127.0.0.1', port=6379, db=1,
-        password=None, parser_class=None,
-        unix_socket_path=None):
+                            password=None, parser_class=None,
+                            unix_socket_path=None):
         connection_identifier = (host, port, db, parser_class, unix_socket_path)
         if not self._connection_pools.get(connection_identifier):
             connection_class = (
@@ -69,7 +65,7 @@ class CacheConnectionPool(object):
 pool = CacheConnectionPool()
 
 
-class CacheClass(BaseCache):
+class RedisCache(BaseCache):
     def __init__(self, server, params):
         """
         Connect to Redis, and set up cache backend.
@@ -77,7 +73,7 @@ class CacheClass(BaseCache):
         self._init(server, params)
 
     def _init(self, server, params):
-        super(CacheClass, self).__init__(params)
+        super(RedisCache, self).__init__(params)
         self._server = server
         self._params = params
 
@@ -153,11 +149,8 @@ class CacheClass(BaseCache):
         self._init(**state)
 
     def make_key(self, key, version=None):
-        """
-        Returns the utf-8 encoded bytestring of the given key as a CacheKey
-        instance to be able to check if it was "made" before.
-        """
         if not isinstance(key, CacheKey):
+            key = super(RedisCache, self).make_key(key, version)
             key = CacheKey(key)
         return key
 
@@ -296,35 +289,24 @@ class CacheClass(BaseCache):
             self.set(key, value)
         return value
 
-
-class RedisCache(CacheClass):
-    """
-    A subclass that is supposed to be used on Django >= 1.3.
-    """
-
-    def make_key(self, key, version=None):
-        if not isinstance(key, CacheKey):
-            key = CacheKey(super(CacheClass, self).make_key(key, version))
-        return key
-
     def incr_version(self, key, delta=1, version=None):
         """
         Adds delta to the cache version for the supplied key. Returns the
         new version.
 
-        Note: In Redis 2.0 you cannot rename a volitle key, so we have to move
-        the value from the old key to the new key and maintain the ttl.
         """
         if version is None:
             version = self.version
-        old_key = self.make_key(key, version)
-        value = self.get(old_key, version=version)
-        ttl = self._client.ttl(old_key)
-        if value is None:
+
+        old = self.make_key(key, version)
+        new = self.make_key(key, version=version + delta)
+
+        try:
+            self._client.renamenx(old, new)
+        except redis.ResponseError:
             raise ValueError("Key '%s' not found" % key)
-        new_key = self.make_key(key, version=version+delta)
-        # TODO: See if we can check the version of Redis, since 2.2 will be able
-        # to rename volitile keys.
-        self.set(new_key, value, timeout=ttl)
-        self.delete(old_key)
+
         return version + delta
+
+
+

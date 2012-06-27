@@ -2,10 +2,26 @@
 Redis Django Cache Backend
 ==========================
 
-A simple Redis cache backend for Django
+A Redis cache backend for Django
 
-Changes in 0.9.0
-================
+
+Roadmap
+=======
+
+1.0.0
+-----
+
+    * Deprecate support for django <= 1.2 and redis <= 2.4.  If you need support for those versions,
+        pin django-redis-cache to a version less than 1.0.
+    * Adding configurable serialization formats json, yaml, msgpack
+    * Optional client-side sharding with either dynamic or static server pool
+    * Delete keys using wildcard syntax.
+
+Changelog
+=========
+
+0.9.0
+-----
 
 Redis cache now allows you to use either a TCP connection or Unix domain
 socket to connect to your redis server.  Using a TCP connection is useful for
@@ -19,29 +35,26 @@ when parsing messages from the redis server.  redis-py will pick the best
 parser for you implicitly, but using the ``PARSER_CLASS`` setting gives you
 control and the option to roll your own parser class if you are so bold.
 
-Notes
------
 
-This cache backend requires the `redis-py`_ Python client library for
-communicating with the Redis server.
+Requirements
+============
 
-Redis writes to disk asynchronously so there is a slight chance
-of losing some data, but for most purposes this is acceptable.
+`redis-py`_ >= 2.4.5
+`redis`_ >= 2.4
+`hiredis`_
+`python`_ >= 2.5
 
-Usage
------
 
-1. Run ``python setup.py install`` to install,
-   or place ``redis_cache`` on your Python path.
+Installation
+============
 
-2. Modify your Django settings to use ``redis_cache`` :
+pip install django-redis-cache
+or
+python setup.py install
 
-On Django < 1.3::
 
-    CACHE_BACKEND = 'redis_cache.cache://<host>:<port>'
-
-On Django >= 1.3::
-
+Configuraton
+============
 
     # When using TCP connections
     CACHES = {
@@ -51,7 +64,7 @@ On Django >= 1.3::
             'OPTIONS': {
                 'DB': 1,
                 'PASSWORD': 'yadayada',
-                'PARSER_CLASS': 'redis.connection.HiredisParser'
+                'PARSER_CLASS': 'redis.connection.HiredisParser',
             },
         },
     }
@@ -71,4 +84,18 @@ On Django >= 1.3::
         },
     }
 
+
+Running Tests
+=============
+
+./run_tests -s path/to/redis-server -c path/to/redis.conf
+
+or if redis server is already running, simply
+
+./run_tests
+
+
 .. _redis-py: http://github.com/andymccurdy/redis-py/
+.. _redis: http://github.com/antirez/redis/
+.. _hiredis: http://github.com/antirez/hiredis/
+.. _python: http://python.org
