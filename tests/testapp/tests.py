@@ -45,7 +45,8 @@ class RedisCacheTests(TestCase):
 
     def reset_pool(self):
         if hasattr(self, 'cache'):
-            self.cache._client.connection_pool.disconnect()
+            for client in self.cache.clients:
+                client.connection_pool.disconnect()
 
     def get_cache(self, backend=None):
         return get_cache(backend or 'default')
@@ -59,12 +60,13 @@ class RedisCacheTests(TestCase):
     def test_default_initialization(self):
         self.reset_pool()
         self.cache = self.get_cache()
-        connection_class = self.cache._client.connection_pool.connection_class
+        client = self.cache.clients[0]
+        connection_class = client.connection_pool.connection_class
         if connection_class is not UnixDomainSocketConnection:
-            self.assertEqual(self.cache._client.connection_pool.connection_kwargs['host'], '127.0.0.1')
-            self.assertEqual(self.cache._client.connection_pool.connection_kwargs['port'], 6379)
+            self.assertEqual(client.connection_pool.connection_kwargs['host'], '127.0.0.1')
+            self.assertEqual(client.connection_pool.connection_kwargs['port'], 6379)
             self._skip_tearDown = True
-        self.assertEqual(self.cache._client.connection_pool.connection_kwargs['db'], 15)
+        self.assertEqual(client.connection_pool.connection_kwargs['db'], 15)
 
     def test_simple(self):
         # Simple cache set/get works
@@ -95,10 +97,8 @@ class RedisCacheTests(TestCase):
 
     def test_get_many_with_manual_integer_insertion(self):
         keys = ['a', 'b', 'c', 'd']
-        cache_keys = map(self.cache.make_key, keys)
-        # manually set integers and then get_many
-        for i, key in enumerate(cache_keys):
-            self.cache._client.set(key, i)
+        for i, key in enumerate(keys):
+            self.cache.set(key, i)
         self.assertEqual(self.cache.get_many(keys), {'a': 0, 'b': 1, 'c': 2, 'd': 3})
 
     def test_get_many_with_automatic_integer_insertion(self):
@@ -218,18 +218,18 @@ class RedisCacheTests(TestCase):
     def test_set_expiration_timeout_None(self):
         key, value = self.cache.make_key('key'), 'value'
         self.cache.set(key, value)
-        self.assertTrue(self.cache._client.ttl(key) > 0)
+        self.assertTrue(self.cache.get_client(key).ttl(key) > 0)
 
     def test_set_expiration_timeout_zero(self):
         key, value = self.cache.make_key('key'), 'value'
         self.cache.set(key, value, timeout=0)
-        self.assertTrue(self.cache._client.ttl(key) is None)
+        self.assertTrue(self.cache.get_client(key).ttl(key) is None)
         self.assertTrue(key in self.cache)
 
     def test_set_expiration_timeout_negative(self):
         key, value = self.cache.make_key('key'), 'value'
         self.cache.set(key, value, timeout=-1)
-        self.assertTrue(self.cache._client.ttl(key) is None)
+        self.assertTrue(self.cache.get_client(key).ttl(key) is None)
         self.assertFalse(key in self.cache)
 
     def test_unicode(self):
@@ -303,28 +303,27 @@ class RedisCacheTests(TestCase):
 
     def test_incr_version(self):
         if isinstance(self.cache, RedisCache):
-            old_key = "key1"
-            self.cache.set(old_key, "spam", version=1)
-            self.assertEqual(self.cache.make_key(old_key), ':1:key1')
-            new_version = self.cache.incr_version(old_key, 1)
+            key = "key1"
+            self.cache.set(key, "spam", version=1)
+            self.assertEqual(self.cache.make_key(key), ':1:key1')
+            new_version = self.cache.incr_version(key, 1)
             self.assertEqual(new_version, 2)
-            new_key = self.cache.make_key(old_key, version=new_version)
+            new_key = self.cache.make_key(key, version=new_version)
             self.assertEqual(new_key, ':2:key1')
-            self.assertEqual(self.cache.get(old_key), None)
-            self.assertEqual(self.cache.get(new_key), 'spam')
+            self.assertEqual(self.cache.get(key, version=1), None)
+            self.assertEqual(self.cache.get(key, version=2), 'spam')
 
     def test_incr_with_pickled_integer(self):
         "Testing case where there exists a pickled integer and we increment it"
         number = 42
         key = self.cache.make_key("key")
-
         # manually set value using the redis client
-        self.cache._client.set(key, pickle.dumps(number))
+        self.cache.get_client("key").set(key, pickle.dumps(number))
         new_value = self.cache.incr(key)
         self.assertEqual(new_value, number + 1)
 
         # Test that the pickled value was converted to an integer
-        value = int(self.cache._client.get(key))
+        value = int(self.cache.get_client(key).get(key))
         self.assertTrue(isinstance(value, int))
 
         # now that the value is an integer, let's increment it again.
