@@ -11,7 +11,7 @@ Roadmap
 1.0.0
 -----
 
-* Deprecate support for django <= 1.2 and redis <= 2.4.  If you need support for those versions,
+* Deprecate support for django < 1.3 and redis < 2.4.  If you need support for those versions,
     pin django-redis-cache to a version less than 1.0.
 * Client-side sharding when multiple locations provided.
 * Delete keys using wildcard syntax.
