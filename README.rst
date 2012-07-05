@@ -56,6 +56,8 @@ python setup.py install
 Configuraton
 ============
 
+example::
+
     # When using TCP connections
     CACHES = {
         'default': {
