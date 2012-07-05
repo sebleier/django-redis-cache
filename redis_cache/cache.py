@@ -248,6 +248,13 @@ class RedisCache(BaseCache):
             keys = [self.make_key(key, version=version) for key in keys]
             client.delete(*keys)
 
+    def delete_pattern(self, pattern, version=None):
+        pattern = self.make_key(pattern, version=version)
+        for client in self.clients:
+            keys = client.keys(pattern)
+            if len(keys):
+                client.delete(*keys)
+
     def clear(self):
         """
         Flush all cache keys.

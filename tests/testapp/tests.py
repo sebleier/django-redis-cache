@@ -362,3 +362,21 @@ class RedisCacheTests(TestCase):
         options['DB'] = 15
         get_cache('redis_cache.RedisCache', LOCATION="%s:%s" % (server.host, server.port), OPTIONS=options)
         self.assertEqual(len(pool._connection_pools), 2)
+
+    def test_delete_pattern(self):
+        data = {
+            'a': 'a',
+            'b': 'b',
+            'aa': 'aa',
+            'bb': 'bb',
+            'aaa': 'aaa',
+            'bbb': 'bbb',
+        }
+        self.cache.set_many(data)
+        self.cache.delete_pattern('aa*')
+        items = self.cache.get_many(data.keys())
+        self.assertEqual(len(items), 4)
+
+        self.cache.delete_pattern('b?b')
+        items = self.cache.get_many(data.keys())
+        self.assertEqual(len(items), 3)
