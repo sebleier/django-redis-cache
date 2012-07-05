@@ -57,12 +57,15 @@ Configuraton
 ============
 
 example::
-
     # When using TCP connections
     CACHES = {
         'default': {
             'BACKEND': 'redis_cache.RedisCache',
-            'LOCATION': '<host>:<port>',
+            'LOCATION': [
+                '<host>:<port>',
+                '<host>:<port>',
+                '<host>:<port>',
+            ],
             'OPTIONS': {
                 'DB': 1,
                 'PASSWORD': 'yadayada',
