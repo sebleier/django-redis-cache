@@ -156,6 +156,15 @@ class RedisCache(BaseCache):
     def __setstate__(self, state):
         self._init(**state)
 
+    def serialize(self, value):
+        return pickle.dumps(value)
+
+    def deserialize(self, value):
+        """
+        Unpickles the given value.
+        """
+        return pickle.loads(value)
+
     def get_value(self, original):
         try:
             value = int(original)
@@ -180,6 +189,10 @@ class RedisCache(BaseCache):
             key = super(RedisCache, self).make_key(key, version)
             key = CacheKey(key)
         return key
+
+    ####################
+    # Django cache api #
+    ####################
 
     def add(self, key, value, timeout=None, version=None):
         """
@@ -252,13 +265,6 @@ class RedisCache(BaseCache):
             keys = [self.make_key(key, version=version) for key in keys]
             client.delete(*keys)
 
-    def delete_pattern(self, pattern, version=None):
-        pattern = self.make_key(pattern, version=version)
-        for client in self.clients:
-            keys = client.keys(pattern)
-            if len(keys):
-                client.delete(*keys)
-
     def clear(self):
         """
         Flush all cache keys.
@@ -266,15 +272,6 @@ class RedisCache(BaseCache):
         # TODO : potential data loss here, should we only delete keys based on the correct version ?
         for client in self.clients:
             client.flushdb()
-
-    def serialize(self, value):
-        return pickle.dumps(value)
-
-    def deserialize(self, value):
-        """
-        Unpickles the given value.
-        """
-        return pickle.loads(value)
 
     def _get_many(self, client, keys, version=None):
         """
@@ -349,3 +346,14 @@ class RedisCache(BaseCache):
             raise ValueError("Key '%s' not found" % key)
 
         return version + delta
+
+    #####################
+    # Extra api methods #
+    #####################
+
+    def delete_pattern(self, pattern, version=None):
+        pattern = self.make_key(pattern, version=version)
+        for client in self.clients:
+            keys = client.keys(pattern)
+            if len(keys):
+                client.delete(*keys)
