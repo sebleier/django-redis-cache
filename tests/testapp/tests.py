@@ -380,3 +380,23 @@ class RedisCacheTests(TestCase):
         self.cache.delete_pattern('b?b')
         items = self.cache.get_many(data.keys())
         self.assertEqual(len(items), 3)
+
+    def test_clearing_using_version(self):
+        self.cache.set('a', 'a', version=1)
+        self.cache.set('b', 'b', version=1)
+        self.cache.set('a', 'a', version=2)
+        self.cache.set('b', 'b', version=2)
+
+        values = self.cache.get_many(['a', 'b'], version=1)
+        self.assertEqual(len(values), 2)
+
+        values = self.cache.get_many(['a', 'b'], version=2)
+        self.assertEqual(len(values), 2)
+
+        self.cache.clear(version=2)
+
+        values = self.cache.get_many(['a', 'b'], version=1)
+        self.assertEqual(len(values), 2)
+
+        values = self.cache.get_many(['a', 'b'], version=2)
+        self.assertEqual(len(values), 0)

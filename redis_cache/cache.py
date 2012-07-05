@@ -265,13 +265,18 @@ class RedisCache(BaseCache):
             keys = [self.make_key(key, version=version) for key in keys]
             client.delete(*keys)
 
-    def clear(self):
+    def clear(self, version=None):
         """
-        Flush all cache keys.
+        Flush cache keys.
+
+        If version is specified, all keys belonging the version's key
+        namespace will be deleted
         """
-        # TODO : potential data loss here, should we only delete keys based on the correct version ?
-        for client in self.clients:
-            client.flushdb()
+        if version is None:
+            for client in self.clients:
+                client.flushdb()
+        else:
+            self.delete_pattern('*', version=version)
 
     def _get_many(self, client, keys, version=None):
         """
@@ -294,7 +299,7 @@ class RedisCache(BaseCache):
         data = {}
         clients = self.shard(keys)
         for client, keys in clients.items():
-            data.update(self._get_many(client, keys))
+            data.update(self._get_many(client, keys, version=version))
         return data
 
     def set_many(self, data, timeout=None, version=None):
