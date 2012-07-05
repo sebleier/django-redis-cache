@@ -13,9 +13,9 @@ Roadmap
 
     * Deprecate support for django <= 1.2 and redis <= 2.4.  If you need support for those versions,
         pin django-redis-cache to a version less than 1.0.
-    * Adding configurable serialization formats json, yaml, msgpack
-    * Optional client-side sharding with either dynamic or static server pool
+    * Client-side sharding when multiple locations provided.
     * Delete keys using wildcard syntax.
+    * Clear cache using version to delete only keys under that namespace.
 
 Changelog
 =========

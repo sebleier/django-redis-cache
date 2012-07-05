@@ -115,6 +115,7 @@ class RedisCache(BaseCache):
             )
             self.clients.append(client)
             self.sharder.add(client, "%s:%s" % (host, port))
+            self.serializer = pickle
 
     @property
     def params(self):
@@ -157,13 +158,19 @@ class RedisCache(BaseCache):
         self._init(**state)
 
     def serialize(self, value):
-        return pickle.dumps(value)
+        try:
+            return self.serializer.dumps(value)
+        except TypeError:
+            return pickle.dumps(value)
 
     def deserialize(self, value):
         """
         Unpickles the given value.
         """
-        return pickle.loads(value)
+        try:
+            return self.serializer.loads(value)
+        except (TypeError, ValueError):
+            return pickle.loads(value)
 
     def get_value(self, original):
         try:
@@ -270,7 +277,7 @@ class RedisCache(BaseCache):
         Flush cache keys.
 
         If version is specified, all keys belonging the version's key
-        namespace will be deleted
+        namespace will be deleted.  Otherwise, all keys will be deleted.
         """
         if version is None:
             for client in self.clients:
