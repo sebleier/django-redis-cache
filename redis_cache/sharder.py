@@ -50,7 +50,7 @@ class CacheSharder(object):
 
     def __init__(self, clients=[]):
         self._clients = []
-        self.intervals = [Interval(0, 1)]
+        self.intervals = []
 
     def __len__(self):
         return len(self._clients)
@@ -64,13 +64,17 @@ class CacheSharder(object):
         the list and resort.  The client value will be the bisect of the popped
         interval.
         """
-        interval = self.intervals.pop()
-        value = interval.start + (interval.end - interval.start) / 2.0
-        # Create two half-sized intervals and push back into the list
-        left, right = Interval(interval.start, value), Interval(value, interval.end)
-        self.intervals.append(left)
-        self.intervals.append(right)
-        self.intervals.sort()
+        if len(self.intervals) == 0:
+            self.intervals.append(Interval(0, 1))
+            value = 0.0
+        else:
+            interval = self.intervals.pop()
+            value = interval.start + (interval.end - interval.start) / 2.0
+            # Create two half-sized intervals and push back into the list
+            left, right = Interval(interval.start, value), Interval(value, interval.end)
+            self.intervals.append(left)
+            self.intervals.append(right)
+            self.intervals.sort()
         #insert the client
         bisect.insort_left(self._clients, Node(client, value, id))
 
