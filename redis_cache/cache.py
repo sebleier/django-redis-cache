@@ -156,6 +156,13 @@ class RedisCache(BaseCache):
     def __setstate__(self, state):
         self._init(**state)
 
+    def get_value(self, original):
+        try:
+            value = int(original)
+        except (ValueError, TypeError):
+            value = self.deserialize(original)
+        return value
+
     def get_client(self, key):
         return self.sharder.get_client(key)
 
@@ -196,11 +203,8 @@ class RedisCache(BaseCache):
         value = client.get(key)
         if value is None:
             return default
-        try:
-            result = int(value)
-        except (ValueError, TypeError):
-            result = self.unpickle(value)
-        return result
+        value = self.get_value(value)
+        return value
 
     def _set(self, key, value, timeout, client):
         if timeout == 0:
@@ -225,7 +229,7 @@ class RedisCache(BaseCache):
             if int(value) != value:
                 raise TypeError
         except (ValueError, TypeError):
-            result = self._set(key, pickle.dumps(value), int(timeout), client)
+            result = self._set(key, self.serialize(value), int(timeout), client)
         else:
             result = self._set(key, int(value), int(timeout), client)
         # result is a boolean
@@ -263,11 +267,13 @@ class RedisCache(BaseCache):
         for client in self.clients:
             client.flushdb()
 
-    def unpickle(self, value):
+    def serialize(self, value):
+        return pickle.dumps(value)
+
+    def deserialize(self, value):
         """
         Unpickles the given value.
         """
-        value = smart_str(value)
         return pickle.loads(value)
 
     def _get_many(self, client, keys, version=None):
@@ -283,12 +289,7 @@ class RedisCache(BaseCache):
         for key, value in zip(new_keys, results):
             if value is None:
                 continue
-            try:
-                value = int(value)
-            except (ValueError, TypeError):
-                value = self.unpickle(value)
-            if isinstance(value, basestring):
-                value = smart_unicode(value)
+            value = self.get_value(value)
             recovered_data[map_keys[key]] = value
         return recovered_data
 
