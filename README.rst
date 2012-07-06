@@ -5,8 +5,8 @@ Redis Django Cache Backend
 A Redis cache backend for Django
 
 
-Roadmap
-=======
+Changelog
+=========
 
 1.0.0
 -----
@@ -16,9 +16,8 @@ Roadmap
 * Client-side sharding when multiple locations provided.
 * Delete keys using wildcard syntax.
 * Clear cache using version to delete only keys under that namespace.
+* Ability to select pickle version.
 
-Changelog
-=========
 
 0.9.0
 -----
@@ -70,6 +69,7 @@ example::
                 'DB': 1,
                 'PASSWORD': 'yadayada',
                 'PARSER_CLASS': 'redis.connection.HiredisParser',
+                'PICKLE_VERSION': 2, # Defaults to 0
             },
         },
     }
@@ -84,7 +84,8 @@ example::
             'OPTIONS': {
                 'DB': 1,
                 'PASSWORD': 'yadayada',
-                'PARSER_CLASS': 'redis.connection.HiredisParser'
+                'PARSER_CLASS': 'redis.connection.HiredisParser',
+                'PICKLE_VERSION': 2, # Defaults to 0
             },
         },
     }

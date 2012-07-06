@@ -78,6 +78,7 @@ class RedisCache(BaseCache):
         super(RedisCache, self).__init__(params)
         self._params = params
         self._server = server
+        self._pickle_version = None
         self.clients = []
         self.sharder = CacheSharder()
 
@@ -115,7 +116,6 @@ class RedisCache(BaseCache):
             )
             self.clients.append(client)
             self.sharder.add(client, "%s:%s" % (host, port))
-            self.serializer = pickle
 
     @property
     def params(self):
@@ -151,6 +151,20 @@ class RedisCache(BaseCache):
             raise ImproperlyConfigured("Could not find parser class '%s'" % parser_class)
         return parser_class
 
+    @property
+    def pickle_version(self):
+        """
+        Get the pickle version from the settings and save it for future use
+        """
+        if self._pickle_version is None:
+            _pickle_version = self.options.get('PICKLE_VERSION', 0)
+            try:
+                _pickle_version = int(_pickle_version)
+            except (ValueError, TypeError):
+                raise ImproperlyConfigured("pickle version value must be an integer")
+            self._pickle_version = _pickle_version
+        return self._pickle_version
+
     def __getstate__(self):
         return {'params': self._params, 'server': self._server}
 
@@ -158,19 +172,13 @@ class RedisCache(BaseCache):
         self._init(**state)
 
     def serialize(self, value):
-        try:
-            return self.serializer.dumps(value)
-        except TypeError:
-            return pickle.dumps(value)
+        return pickle.dumps(value, self.pickle_version)
 
     def deserialize(self, value):
         """
         Unpickles the given value.
         """
-        try:
-            return self.serializer.loads(value)
-        except (TypeError, ValueError):
-            return pickle.loads(value)
+        return pickle.loads(value)
 
     def get_value(self, original):
         try:

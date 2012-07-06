@@ -13,6 +13,7 @@ CACHES = {
             'DB': 15,
             'PASSWORD': 'yadayada',
             'PARSER_CLASS': 'redis.connection.HiredisParser',
+            'PICKLE_VERSION': 2,
         },
     },
 }

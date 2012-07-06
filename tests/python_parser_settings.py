@@ -12,7 +12,8 @@ CACHES = {
         'OPTIONS': {
             'DB': 15,
             'PASSWORD': 'yadayada',
-            'PARSER_CLASS': 'redis.connection.PythonParser'
+            'PARSER_CLASS': 'redis.connection.PythonParser',
+            'PICKLE_VERSION': 2,
         },
     },
 }
