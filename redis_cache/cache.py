@@ -79,6 +79,7 @@ class RedisCache(BaseCache):
         self._params = params
         self._server = server
         self._pickle_version = None
+        self.__master_client = None
         self.clients = []
         self.sharder = CacheSharder()
 
@@ -167,6 +168,30 @@ class RedisCache(BaseCache):
             self._pickle_version = _pickle_version
         return self._pickle_version
 
+    @property
+    def master_client(self):
+        """
+        Get the write server:port of the master cache
+        """
+        if not hasattr(self, '_master_client') and self.__master_client is None:
+            cache = self.options.get('MASTER_CACHE', None)
+            if cache is None:
+                self._master_client = None
+            else:
+                self._master_client = None
+                try:
+                    host, port = cache.split(":")
+                except ValueError:
+                    raise ImproperlyConfigured("MASTER_CACHE must be in the form <host>:<port>")
+                for client in self.clients:
+                    connection_kwargs = client.connection_pool.connection_kwargs
+                    if connection_kwargs['host'] == host and connection_kwargs['port'] == int(port):
+                        self._master_client = client
+                        break
+                if self._master_client is None:
+                    raise ImproperlyConfigured("%s is not in the list of available redis-server instances." % cache)
+        return self._master_client
+
     def __getstate__(self):
         return {'params': self._params, 'server': self._server}
 
@@ -189,16 +214,18 @@ class RedisCache(BaseCache):
             value = self.deserialize(original)
         return value
 
-    def get_client(self, key):
+    def get_client(self, key, for_write=False):
+        if for_write and self.master_client is not None:
+            return self.master_client
         return self.sharder.get_client(key)
 
-    def shard(self, keys, version=None):
+    def shard(self, keys, for_write=False, version=None):
         """
         Returns a dict of keys that belong to a cache's keyspace.
         """
         clients = defaultdict(list)
         for key in keys:
-            clients[self.get_client(key)].append(key)
+            clients[self.get_client(key, for_write)].append(key)
         return clients
 
     def make_key(self, key, version=None):
@@ -253,7 +280,7 @@ class RedisCache(BaseCache):
         Persist a value to the cache, and set an optional expiration time.
         """
         if client is None:
-            client = self.get_client(key)
+            client = self.get_client(key, for_write=True)
         key = self.make_key(key, version=version)
         if timeout is None:
             timeout = self.default_timeout
@@ -273,7 +300,7 @@ class RedisCache(BaseCache):
         """
         Remove a key from the cache.
         """
-        client = self.get_client(key)
+        client = self.get_client(key, for_write=True)
         key = self.make_key(key, version=version)
         client.delete(key)
 
@@ -281,7 +308,7 @@ class RedisCache(BaseCache):
         """
         Remove multiple keys at once.
         """
-        clients = self.shard(keys)
+        clients = self.shard(keys, for_write=True)
         for client, keys in clients.items():
             keys = [self.make_key(key, version=version) for key in keys]
             client.delete(*keys)
@@ -294,8 +321,11 @@ class RedisCache(BaseCache):
         namespace will be deleted.  Otherwise, all keys will be deleted.
         """
         if version is None:
-            for client in self.clients:
-                client.flushdb()
+            if self.master_client is None:
+                for client in self.clients:
+                    client.flushdb()
+            else:
+                self.master_client.flushdb()
         else:
             self.delete_pattern('*', version=version)
 
@@ -331,7 +361,7 @@ class RedisCache(BaseCache):
         If timeout is given, that timeout will be used for the key; otherwise
         the default cache timeout will be used.
         """
-        clients = self.shard(data.keys())
+        clients = self.shard(data.keys(), for_write=True)
         for client, keys in clients.iteritems():
             pipeline = client.pipeline()
             for key in keys:
@@ -343,7 +373,7 @@ class RedisCache(BaseCache):
         Add delta to value in the cache. If the key does not exist, raise a
         ValueError exception.
         """
-        client = self.get_client(key)
+        client = self.get_client(key, for_write=True)
         key = self.make_key(key, version=version)
         exists = client.exists(key)
         if not exists:
@@ -363,7 +393,7 @@ class RedisCache(BaseCache):
         """
         if version is None:
             version = self.version
-        client = self.get_client(key)
+        client = self.get_client(key, for_write=True)
         old = self.make_key(key, version)
         new = self.make_key(key, version=version + delta)
         try:
@@ -379,7 +409,12 @@ class RedisCache(BaseCache):
 
     def delete_pattern(self, pattern, version=None):
         pattern = self.make_key(pattern, version=version)
-        for client in self.clients:
-            keys = client.keys(pattern)
+        if self.master_client is None:
+            for client in self.clients:
+                keys = client.keys(pattern)
+                if len(keys):
+                    client.delete(*keys)
+        else:
+            keys = self.master_client.keys(pattern)
             if len(keys):
-                client.delete(*keys)
+                self.master_client.delete(*keys)

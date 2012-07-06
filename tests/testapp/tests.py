@@ -318,7 +318,7 @@ class RedisCacheTests(TestCase):
         number = 42
         key = self.cache.make_key("key")
         # manually set value using the redis client
-        self.cache.get_client("key").set(key, pickle.dumps(number))
+        self.cache.get_client("key", for_write=True).set(key, pickle.dumps(number))
         new_value = self.cache.incr(key)
         self.assertEqual(new_value, number + 1)
 
