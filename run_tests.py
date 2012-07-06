@@ -78,6 +78,7 @@ def runtests(options):
     # default configuration is running
     if options.server_path is None:
         sys.stderr.write('Tests must be run by specifying where the redis-server executable is located.\n')
+        sys.exit(1)
 
     redis_conf_path = join(dirname(__file__), 'tests', 'redis.conf')
 
