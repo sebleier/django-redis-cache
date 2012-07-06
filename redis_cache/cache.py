@@ -207,10 +207,7 @@ class RedisCache(BaseCache):
 
         Returns ``True`` if the object was added, ``False`` if not.
         """
-        client = self.get_client(key)
-        if client.exists(self.make_key(key, version=version)):
-            return False
-        return self.set(key, value, timeout)
+        return self.set(key, value, timeout, _add_only=True)
 
     def get(self, key, default=None, version=None):
         """
@@ -226,15 +223,22 @@ class RedisCache(BaseCache):
         value = self.get_value(value)
         return value
 
-    def _set(self, key, value, timeout, client):
+    def _set(self, key, value, timeout, client, _add_only=False):
         if timeout == 0:
+            if _add_only:
+                return client.setnx(key, value)
             return client.set(key, value)
         elif timeout > 0:
-            return client.setex(key, value, int(timeout))
+            if _add_only:
+                added = client.setnx(key, value)
+                if added:
+                    client.expire(key, timeout)
+                return added
+            return client.setex(key, value, timeout)
         else:
             return False
 
-    def set(self, key, value, timeout=None, version=None, client=None):
+    def set(self, key, value, timeout=None, version=None, client=None, _add_only=False):
         """
         Persist a value to the cache, and set an optional expiration time.
         """
@@ -249,9 +253,9 @@ class RedisCache(BaseCache):
             if int(value) != value:
                 raise TypeError
         except (ValueError, TypeError):
-            result = self._set(key, self.serialize(value), int(timeout), client)
+            result = self._set(key, self.serialize(value), int(timeout), client, _add_only)
         else:
-            result = self._set(key, int(value), int(timeout), client)
+            result = self._set(key, int(value), int(timeout), client, _add_only)
         # result is a boolean
         return result
 
