@@ -93,11 +93,7 @@ example::
 Running Tests
 =============
 
-./run_tests -s path/to/redis-server -c path/to/redis.conf
-
-or if redis server is already running, simply
-
-./run_tests
+./run_tests -s path/to/redis-server
 
 
 .. _redis-py: http://github.com/andymccurdy/redis-py/

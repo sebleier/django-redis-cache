@@ -5,9 +5,9 @@ CACHES = {
     'default': {
         'BACKEND': 'redis_cache.RedisCache',
         'LOCATION': [
-            '127.0.0.1:6379',
             '127.0.0.1:6380',
             '127.0.0.1:6381',
+            '127.0.0.1:6382',
         ],
         'OPTIONS': {
             'DB': 15,

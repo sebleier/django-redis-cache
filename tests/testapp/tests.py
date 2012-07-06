@@ -64,7 +64,7 @@ class RedisCacheTests(TestCase):
         connection_class = client.connection_pool.connection_class
         if connection_class is not UnixDomainSocketConnection:
             self.assertEqual(client.connection_pool.connection_kwargs['host'], '127.0.0.1')
-            self.assertEqual(client.connection_pool.connection_kwargs['port'], 6379)
+            self.assertEqual(client.connection_pool.connection_kwargs['port'], 6380)
             self._skip_tearDown = True
         self.assertEqual(client.connection_pool.connection_kwargs['db'], 15)
 
@@ -352,15 +352,15 @@ class RedisCacheTests(TestCase):
     def test_multiple_connection_pool_connections(self):
         pool._connection_pools = {}
         options = settings.CACHES['default']['OPTIONS']
-        get_cache('redis_cache.cache.RedisCache', LOCATION="%s:%s" % (server.host, server.port), OPTIONS=options)
+        get_cache('redis_cache.cache.RedisCache', LOCATION="127.0.0.1:6380", OPTIONS=options)
         self.assertEqual(len(pool._connection_pools), 1)
 
         options['DB'] = 14
-        get_cache('redis_cache.RedisCache', LOCATION="%s:%s" % (server.host, server.port), OPTIONS=options)
+        get_cache('redis_cache.RedisCache', LOCATION="127.0.0.1:6380", OPTIONS=options)
         self.assertEqual(len(pool._connection_pools), 2)
 
         options['DB'] = 15
-        get_cache('redis_cache.RedisCache', LOCATION="%s:%s" % (server.host, server.port), OPTIONS=options)
+        get_cache('redis_cache.RedisCache', LOCATION="127.0.0.1:6380", OPTIONS=options)
         self.assertEqual(len(pool._connection_pools), 2)
 
     def test_delete_pattern(self):

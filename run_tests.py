@@ -8,7 +8,7 @@ from django import VERSION
 from django.conf import settings
 from django.template import Template, Context
 from django.utils import importlib
-from redis.server import server
+from redis.server import RedisServer
 from redis import Redis
 from redis.exceptions import ResponseError
 
@@ -28,7 +28,7 @@ def load_settings(module):
 
 class TmpFile(object):
     def __init__(self, path, contents):
-        self.path =path
+        self.path = path
         self.contents = contents
 
     def __enter__(self):
@@ -51,16 +51,17 @@ def reset_settings():
         settings._wrapped = None
 
 
-def _runtests(host, port, password=None):
+def _runtests(host, ports, password=None):
     from django.test.simple import DjangoTestSuiteRunner
-    client = Redis(host, port)
-    try:
-        client.config_set('requirepass', password)
-    except ResponseError:
-        client = Redis(host, port, password=password)
-        client.config_set('requirepass', password)
+    for port in ports:
+        client = Redis(host, port)
+        try:
+            client.config_set('requirepass', password)
+        except ResponseError:
+            client = Redis(host, port, password=password)
+            client.config_set('requirepass', password)
     runner = DjangoTestSuiteRunner(verbosity=options.verbosity, interactive=True, failfast=False)
-    failures =  runner.run_tests(['testapp'])
+    return runner.run_tests(['testapp'])
 
 
 def runtests(options):
@@ -76,26 +77,36 @@ def runtests(options):
     # If server path was not specified, then assume an instance of redis with
     # default configuration is running
     if options.server_path is None:
-        failures = _runtests('127.0.0.1', 6379, settings.CACHES['default']['OPTIONS']['PASSWORD'])
-    else:
-        redis_conf_path = options.conf or join(dirname(__file__), 'tests', 'redis.conf')
-        server.configure(options.server_path, redis_conf_path, 0)
-        try:
-            print join(dirname(__file__), 'tests' ,'redis.conf.%s' % redis_version)
-            redis_conf_template = open(join(dirname(__file__), 'tests' ,'redis.conf.%s' % redis_version)).read()
-        except OSError, IOError:
-            sys.stderr.write('Cannot find template for redis.conf.\n')
-        context = Context({
-            'redis_socket': join(dirname(abspath(__file__)), 'tests', 'redis.sock')
-        })
-        contents = Template(redis_conf_template).render(context)
-        with TmpFile(redis_conf_path, contents):
-            if not is_sockets_test:
-                conf['CACHES']['default']['LOCATION'] = "%s:%s" % (server.host, server.port)
-                reset_settings()
-                settings.configure(**conf)
-            with server:
-                failures = _runtests(server.host, server.port, server.password)
+        sys.stderr.write('Tests must be run by specifying where the redis-server executable is located.\n')
+
+    redis_conf_path = join(dirname(__file__), 'tests', 'redis.conf')
+
+    try:
+        redis_conf_template = open(join(dirname(__file__), 'tests', 'redis.conf.%s' % redis_version)).read()
+    except (OSError, IOError):
+        sys.stderr.write('Cannot find template for redis.conf.\n')
+
+    context = Context({
+        'redis_socket': join(dirname(abspath(__file__)), 'tests', 'redis.sock')
+    })
+    contents = Template(redis_conf_template).render(context)
+
+    with TmpFile(redis_conf_path, contents):
+        if not is_sockets_test:
+            conf['CACHES']['default']['LOCATION'] = [
+                "%s:%s" % ('127.0.0.1', '6380'),
+                "%s:%s" % ('127.0.0.1', '6381'),
+                "%s:%s" % ('127.0.0.1', '6382'),
+            ]
+            reset_settings()
+            settings.configure(**conf)
+
+        # Start 3 servers running in sequential ports
+        with RedisServer(options.server_path, redis_conf_path, {'port': '6380'}):
+            with RedisServer(options.server_path, redis_conf_path, {'port': '6381'}):
+                with RedisServer(options.server_path, redis_conf_path, {'port': '6382'}):
+                    failures = _runtests('127.0.0.1', [6380, 6381, 6382], 'yadayada')
+
     sys.exit(failures)
 
 
@@ -103,8 +114,6 @@ if __name__ == '__main__':
     parser = OptionParser()
     parser.add_option("-s", "--server", dest="server_path", action="store",
         type="string", default=None, help="Path to the redis server executable")
-    parser.add_option("-c", "--conf", dest="conf", default=None,
-        help="Path to the redis configuration file.")
     parser.add_option("-v", "--verbosity", dest="verbosity", default=1, type="int",
         help="Change the verbostiy of the redis-server.")
     parser.add_option("--settings", dest="settings", default="tests.python_parser_settings",
