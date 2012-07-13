@@ -13,7 +13,7 @@ Changelog
 
 * Deprecate support for django < 1.3 and redis < 2.4.  If you need support for those versions,
     pin django-redis-cache to a version less than 1.0.
-* Client-side sharding when multiple locations provided.
+* Application level sharding when a list of locations is provided in the settings.
 * Delete keys using wildcard syntax.
 * Clear cache using version to delete only keys under that namespace.
 * Ability to select pickle protocol version.
@@ -71,7 +71,7 @@ example::
                 'DB': 1,
                 'PASSWORD': 'yadayada',
                 'PARSER_CLASS': 'redis.connection.HiredisParser',
-                'PICKLE_VERSION': 2, # Defaults to 0
+                'PICKLE_VERSION': 2,
             },
         },
     }
@@ -87,7 +87,7 @@ example::
                 'DB': 1,
                 'PASSWORD': 'yadayada',
                 'PARSER_CLASS': 'redis.connection.HiredisParser',
-                'PICKLE_VERSION': 2, # Defaults to 0
+                'PICKLE_VERSION': 2,
             },
         },
     }
@@ -106,11 +106,39 @@ example::
                 'DB': 1,
                 'PASSWORD': 'yadayada',
                 'PARSER_CLASS': 'redis.connection.HiredisParser',
-                'PICKLE_VERSION': 2, # Defaults to 0
+                'PICKLE_VERSION': 2,
                 'MASTER_CACHE': '<master host>:<master port>',
             },
         },
     }
+
+
+
+Usage
+=====
+
+django-redis-cache shares the same API as django's built-in cache backends,
+with a few exceptions.
+
+``cache.delete_pattern``
+
+Delete keys using glob-style pattern.
+
+example::
+
+    >>> from news.models import Story
+    >>>
+    >>> most_viewed = Story.objects.most_viewed()
+    >>> highest_rated = Story.objects.highest_rated()
+    >>> cache.set('news.stories.most_viewed', most_viewed)
+    >>> cache.set('news.stories.highest_rated', highest_rated)
+    >>> data = cache.get_many(['news.stories.highest_rated', 'news.stories.most_viewed'])
+    >>> len(data)
+    2
+    >>> cache.delete_pattern('news.stores.*')
+    >>> data = cache.get_many(['news.stories.highest_rated', 'news.stories.most_viewed'])
+    >>> len(data)
+    0
 
 
 Running Tests
