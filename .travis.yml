@@ -1,0 +1,21 @@
+language: python
+python:
+  - "2.6"
+  - "2.7"
+env:
+  - DJANGO_VERSION=1.2 REDIS_VERSION=2.4
+  - DJANGO_VERSION=1.2 REDIS_VERSION=2.6
+  - DJANGO_VERSION=1.3 REDIS_VERSION=2.4
+  - DJANGO_VERSION=1.3 REDIS_VERSION=2.6
+  - DJANGO_VERSION=1.4 REDIS_VERSION=2.4
+  - DJANGO_VERSION=1.4 REDIS_VERSION=2.6
+install:
+  - pip install Django==$DJANGO_VERSION
+  - pip install -e git://github.com/sebleier/redis-py.git#egg=redis-py
+  - pip install hiredis
+  - ./install_redis.sh
+branches:
+  only:
+    - master
+    - experimental
+script: ./travis_run_all_tests.sh
