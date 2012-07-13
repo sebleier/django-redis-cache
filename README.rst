@@ -140,6 +140,19 @@ example::
     >>> len(data)
     0
 
+``cache.clear``
+
+Same as django's ``cache.clear``, except that you can optionally specify a
+version and all keys with that version will be deleted.  If no version is
+provided, all keys are flushed from the cache.
+
+``cache.reinsert_keys``
+
+This helper method retrieves all keys and inserts them back into the cache.  This
+is useful when changing the pickle protocol number of all the cache entries.
+As of django-redis-cache < 1.0, all cache entries were pickled using version 0.
+To reduce the memory footprint of the redis-server, simply run this method to
+upgrade cache entries to the latest protocol.
 
 Running Tests
 =============

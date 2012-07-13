@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+from hashlib import sha1
 import time
 
 try:
@@ -400,3 +400,21 @@ class RedisCacheTests(TestCase):
 
         values = self.cache.get_many(['a', 'b'], version=2)
         self.assertEqual(len(values), 0)
+
+    def test_reinsert_keys(self):
+        self.cache._pickle_version = 0
+        for i in range(2000):
+            s = sha1(str(i)).hexdigest()
+            self.cache.set(s, self.cache)
+        self.cache._pickle_version = -1
+        self.cache.reinsert_keys()
+
+    def test_ttl_of_reinsert_keys(self):
+        self.cache.set('a', 'a', 5)
+        self.assertEqual(self.cache.get('a'), 'a')
+        self.cache.set('b', 'b', 5)
+        self.cache.reinsert_keys()
+        self.assertEqual(self.cache.get('a'), 'a')
+        self.assertTrue(self.cache.get_client('a').ttl(self.cache.make_key('a')) > 1)
+        self.assertEqual(self.cache.get('b'), 'b')
+        self.assertTrue(self.cache.get_client('b').ttl(self.cache.make_key('b')) > 1)

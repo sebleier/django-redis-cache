@@ -1,4 +1,6 @@
+import sys
 from collections import defaultdict
+from math import ceil
 from django.core.cache.backends.base import BaseCache, InvalidCacheBackendError
 from django.core.exceptions import ImproperlyConfigured
 from django.utils import importlib
@@ -68,6 +70,7 @@ pool = CacheConnectionPool()
 
 
 class RedisCache(BaseCache):
+
     def __init__(self, server, params):
         """
         Connect to Redis, and set up cache backend.
@@ -418,3 +421,37 @@ class RedisCache(BaseCache):
             keys = self.master_client.keys(pattern)
             if len(keys):
                 self.master_client.delete(*keys)
+
+    def reinsert_keys(self):
+        """
+        Reinsert cache entries using the current pickle protocol version.
+        """
+        def print_progress(i, progress):
+            """
+            Helper function to print out the progress of the reinsertion.
+            """
+            sys.stdout.flush()
+            progress = int(ceil(progress * 80))
+            msg = "Server %d / %d: |%s|\r" % (i + 1, len(self.clients), progress * "=" + (80 - progress) * " ")
+            sys.stdout.write(msg)
+
+        for i, client in enumerate(self.clients):
+            keys = client.keys('*')
+            for j, key in enumerate(keys):
+                timeout = client.ttl(key)
+                value = self.deserialize(client.get(key))
+                if timeout is None:
+                    timeout = 0
+                try:
+                    value = float(value)
+                    # If you lose precision from the typecast to str, then pickle value
+                    if int(value) != value:
+                        raise TypeError
+                except (ValueError, TypeError):
+                    self._set(key, self.serialize(value), int(timeout), client)
+                else:
+                    self._set(key, int(value), int(timeout), client)
+                progress = float(j) / len(keys)
+                print_progress(i, progress)
+        print_progress(i, 1)
+        print
