@@ -8,7 +8,8 @@ from django import VERSION
 from django.conf import settings
 from django.template import Template, Context
 from django.utils import importlib
-from redis.server import RedisServer
+from django.core.cache import get_cache
+from redis_cache.server import RedisServer
 from redis import Redis
 from redis.exceptions import ResponseError
 
