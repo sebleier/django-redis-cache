@@ -12,7 +12,7 @@ Changelog
 -----
 
 * Deprecate support for django < 1.3 and redis < 2.4.  If you need support for those versions,
-    pin django-redis-cache to a version less than 1.0.
+    pin django-redis-cache to a version less than 1.0, i.e. pip install django-redis-cache<1.0
 * Application level sharding when a list of locations is provided in the settings.
 * Delete keys using wildcard syntax.
 * Clear cache using version to delete only keys under that namespace.
