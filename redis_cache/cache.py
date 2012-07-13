@@ -160,7 +160,7 @@ class RedisCache(BaseCache):
         Get the pickle version from the settings and save it for future use
         """
         if self._pickle_version is None:
-            _pickle_version = self.options.get('PICKLE_VERSION', 0)
+            _pickle_version = self.options.get('PICKLE_VERSION', -1)
             try:
                 _pickle_version = int(_pickle_version)
             except (ValueError, TypeError):
