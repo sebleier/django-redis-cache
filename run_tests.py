@@ -8,6 +8,20 @@ from django import VERSION
 from django.conf import settings
 from django.template import Template, Context
 from django.utils import importlib
+
+
+parser = OptionParser()
+parser.add_option("-s", "--server", dest="server_path", action="store",
+    type="string", default=None, help="Path to the redis server executable")
+parser.add_option("-v", "--verbosity", dest="verbosity", default=1, type="int",
+    help="Change the verbostiy of the redis-server.")
+parser.add_option("--settings", dest="settings", default="tests.python_parser_settings",
+    help="Django settings module to use for the tests.")
+parser.add_option("--redis-version", dest="redis_version", default="2.6", help="Redis version")
+(options, args) = parser.parse_args()
+os.environ['DJANGO_SETTINGS_MODULE'] = options.settings
+
+
 from django.core.cache import get_cache
 from redis_cache.server import RedisServer
 from redis import Redis
@@ -66,7 +80,7 @@ def _runtests(host, ports, password=None):
 
 
 def runtests(options):
-    os.environ['DJANGO_SETTINGS_MODULE'] = options.settings
+
     redis_version = options.redis_version
     is_sockets_test = options.settings == "tests.sockets_settings"
 
@@ -113,18 +127,6 @@ def runtests(options):
 
 
 if __name__ == '__main__':
-    parser = OptionParser()
-    parser.add_option("-s", "--server", dest="server_path", action="store",
-        type="string", default=None, help="Path to the redis server executable")
-    parser.add_option("-v", "--verbosity", dest="verbosity", default=1, type="int",
-        help="Change the verbostiy of the redis-server.")
-    parser.add_option("--settings", dest="settings", default="tests.python_parser_settings",
-        help="Django settings module to use for the tests.")
-    parser.add_option("--redis-version", dest="redis_version", default="2.6", help="Redis version")
-
-    (options, args) = parser.parse_args()
-
     parent = dirname(abspath(__file__))
     sys.path.insert(0, parent)
-
     runtests(options)
