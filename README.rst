@@ -62,7 +62,7 @@ example::
     CACHES = {
         'default': {
             'BACKEND': 'redis_cache.RedisCache',
-            'LOCATION': [
+            'LOCATIONS': [
                 '<host>:<port>',
                 '<host>:<port>',
                 '<host>:<port>',
@@ -97,7 +97,7 @@ example::
     CACHES = {
         'default': {
             'BACKEND': 'redis_cache.RedisCache',
-            'LOCATION': [
+            'LOCATIONS': [
                 '<host>:<port>',
                 '<host>:<port>',
                 '<host>:<port>',
