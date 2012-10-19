@@ -28,6 +28,9 @@ communicating with the Redis server.
 Redis writes to disk asynchronously so there is a slight chance
 of losing some data, but for most purposes this is acceptable.
 
+In order to use ``redis.connection.HiredisParser`` parser class, you need to
+pip install `hiredis`_.  This is the recommended parser class.
+
 Usage
 -----
 
@@ -72,3 +75,5 @@ On Django >= 1.3::
     }
 
 .. _redis-py: http://github.com/andymccurdy/redis-py/
+.. _hiredis: https://github.com/pietern/hiredis-py
+
