@@ -360,6 +360,12 @@ class RedisCacheTests(TestCase):
         self.assertTrue(self.cache.set("foo", "1"))
         self.assertEqual(self.cache.get("foo"), "1")
 
+    def test_setting_bool_retrieves_bool(self):
+        self.assertTrue(self.cache.set("bool_t", True))
+        self.assertEqual(self.cache.get("bool_t"), True)
+        self.assertTrue(self.cache.set("bool_f", False))
+        self.assertEqual(self.cache.get("bool_f"), False)
+
 
 
 

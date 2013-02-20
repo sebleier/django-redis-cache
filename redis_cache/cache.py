@@ -211,7 +211,7 @@ class CacheClass(BaseCache):
             timeout = self.default_timeout
 
         # If ``value`` is not an int, then pickle it
-        if not isinstance(value, int):
+        if not isinstance(value, int) or isinstance(value, bool):
             result = self._set(key, pickle.dumps(value), int(timeout), client, _add_only)
         else:
             result = self._set(key, value, int(timeout), client, _add_only)
