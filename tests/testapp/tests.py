@@ -241,6 +241,12 @@ class RedisCacheTests(TestCase):
             self.cache.set(key, value)
             self.assertEqual(self.cache.get(key), value)
 
+    def test_binary_key(self):
+        key = '\xb6\r\x12\x1bC\x8a8\x0c4=^\xc3\xc2\x03ud\xb8/\xfe\xf3'
+        value = 'value'
+        self.cache.set(key, value)
+        self.assertEqual(self.cache.get(key), value)
+
     def test_binary_string(self):
         # Binary strings should be cachable
         from zlib import compress, decompress
