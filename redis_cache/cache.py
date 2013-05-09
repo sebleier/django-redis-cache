@@ -18,25 +18,8 @@ from redis.connection import UnixDomainSocketConnection, Connection
 from redis.connection import DefaultParser
 
 
-class CacheKey(object):
-    """
-    A stub string class that we can use to check if a key was created already.
-    """
-    def __init__(self, key):
-        self._key = key
-
-    def __eq__(self, other):
-        return self._key == other
-
-    def __str__(self):
-        return self.__unicode__()
-
-    def __repr__(self):
-        return self.__unicode__()
-
-    def __unicode__(self):
-        return smart_str(self._key)
-
+class CacheKey(str):
+    pass
 
 class CacheConnectionPool(object):
 
