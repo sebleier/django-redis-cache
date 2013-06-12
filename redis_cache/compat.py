@@ -12,6 +12,12 @@ except ImportError:
     smart_bytes = smart_str
 
 
+if PY3:
+    bytes_type = bytes
+else:
+    bytes_type = str
+
+
 def python_2_unicode_compatible(klass):
     """
     A decorator that defines __unicode__ and __str__ methods under Python 2.

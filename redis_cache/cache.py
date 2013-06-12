@@ -2,7 +2,7 @@ from django.core.cache.backends.base import BaseCache, InvalidCacheBackendError
 from django.core.exceptions import ImproperlyConfigured
 from django.utils import importlib
 from django.utils.datastructures import SortedDict
-from .compat import smart_text, smart_bytes, python_2_unicode_compatible
+from .compat import smart_text, smart_bytes, bytes_type, python_2_unicode_compatible
 
 try:
     import cPickle as pickle
@@ -264,7 +264,7 @@ class CacheClass(BaseCache):
                 value = int(value)
             except (ValueError, TypeError):
                 value = self.unpickle(value)
-            if isinstance(value, basestring):
+            if isinstance(value, bytes_type):
                 value = smart_text(value)
             recovered_data[map_keys[key]] = value
         return recovered_data
