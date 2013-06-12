@@ -277,7 +277,7 @@ class CacheClass(BaseCache):
         the default cache timeout will be used.
         """
         pipeline = self._client.pipeline()
-        for key, value in data.iteritems():
+        for key, value in data.items():
             self.set(key, value, timeout, version=version, client=pipeline)
         pipeline.execute()
 
