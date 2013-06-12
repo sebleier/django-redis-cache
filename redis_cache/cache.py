@@ -1,8 +1,8 @@
 from django.core.cache.backends.base import BaseCache, InvalidCacheBackendError
 from django.core.exceptions import ImproperlyConfigured
 from django.utils import importlib
-from django.utils.encoding import smart_unicode, smart_str
 from django.utils.datastructures import SortedDict
+from .compat import smart_text, smart_bytes
 
 try:
     import cPickle as pickle
@@ -35,7 +35,7 @@ class CacheKey(object):
         return self.__unicode__()
 
     def __unicode__(self):
-        return smart_str(self._key)
+        return smart_text(self._key)
 
 
 class CacheConnectionPool(object):
@@ -243,7 +243,7 @@ class CacheClass(BaseCache):
         """
         Unpickles the given value.
         """
-        value = smart_str(value)
+        value = smart_bytes(value)
         return pickle.loads(value)
 
     def get_many(self, keys, version=None):
@@ -264,7 +264,7 @@ class CacheClass(BaseCache):
             except (ValueError, TypeError):
                 value = self.unpickle(value)
             if isinstance(value, basestring):
-                value = smart_unicode(value)
+                value = smart_text(value)
             recovered_data[map_keys[key]] = value
         return recovered_data
 
