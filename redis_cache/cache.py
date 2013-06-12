@@ -37,6 +37,9 @@ class CacheKey(object):
     def __unicode__(self):
         return smart_text(self._key)
 
+    def __hash__(self):
+        return hash(self._key)
+
 
 class CacheConnectionPool(object):
 
