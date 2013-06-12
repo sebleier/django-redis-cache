@@ -9,7 +9,7 @@ except ImportError:
 from django import VERSION
 from django.core.cache import get_cache
 from django.test import TestCase
-from models import Poll, expensive_calculation
+from .models import Poll, expensive_calculation
 from redis_cache.cache import RedisCache, ImproperlyConfigured, pool
 from redis.connection import UnixDomainSocketConnection
 
@@ -244,7 +244,7 @@ class RedisCacheTests(TestCase):
     def test_binary_string(self):
         # Binary strings should be cachable
         from zlib import compress, decompress
-        value = 'value_to_be_compressed'
+        value = b'value_to_be_compressed'
         compressed_value = compress(value)
         self.cache.set('binary1', compressed_value)
         compressed_result = self.cache.get('binary1')

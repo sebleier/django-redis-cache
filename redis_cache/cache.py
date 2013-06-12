@@ -1,8 +1,8 @@
 from django.core.cache.backends.base import BaseCache, InvalidCacheBackendError
 from django.core.exceptions import ImproperlyConfigured
 from django.utils import importlib
-from django.utils.encoding import smart_unicode, smart_str
 from django.utils.datastructures import SortedDict
+from .compat import smart_text, smart_bytes, bytes_type, python_2_unicode_compatible
 
 try:
     import cPickle as pickle
@@ -18,6 +18,7 @@ from redis.connection import UnixDomainSocketConnection, Connection
 from redis.connection import DefaultParser
 
 
+@python_2_unicode_compatible
 class CacheKey(object):
     """
     A stub string class that we can use to check if a key was created already.
@@ -29,13 +30,13 @@ class CacheKey(object):
         return self._key == other
 
     def __str__(self):
-        return self.__unicode__()
+        return smart_text(self._key)
 
     def __repr__(self):
-        return self.__unicode__()
+        return repr(self._key)
 
-    def __unicode__(self):
-        return smart_str(self._key)
+    def __hash__(self):
+        return hash(self._key)
 
 
 class CacheConnectionPool(object):
@@ -243,7 +244,7 @@ class CacheClass(BaseCache):
         """
         Unpickles the given value.
         """
-        value = smart_str(value)
+        value = smart_bytes(value)
         return pickle.loads(value)
 
     def get_many(self, keys, version=None):
@@ -253,7 +254,7 @@ class CacheClass(BaseCache):
         if not keys:
             return {}
         recovered_data = SortedDict()
-        new_keys = map(lambda key: self.make_key(key, version=version), keys)
+        new_keys = list(map(lambda key: self.make_key(key, version=version), keys))
         map_keys = dict(zip(new_keys, keys))
         results = self._client.mget(new_keys)
         for key, value in zip(new_keys, results):
@@ -263,8 +264,8 @@ class CacheClass(BaseCache):
                 value = int(value)
             except (ValueError, TypeError):
                 value = self.unpickle(value)
-            if isinstance(value, basestring):
-                value = smart_unicode(value)
+            if isinstance(value, bytes_type):
+                value = smart_text(value)
             recovered_data[map_keys[key]] = value
         return recovered_data
 
@@ -277,7 +278,7 @@ class CacheClass(BaseCache):
         the default cache timeout will be used.
         """
         pipeline = self._client.pipeline()
-        for key, value in data.iteritems():
+        for key, value in data.items():
             self.set(key, value, timeout, version=version, client=pipeline)
         pipeline.execute()
 
