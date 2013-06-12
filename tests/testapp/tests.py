@@ -9,7 +9,7 @@ except ImportError:
 from django import VERSION
 from django.core.cache import get_cache
 from django.test import TestCase
-from models import Poll, expensive_calculation
+from .models import Poll, expensive_calculation
 from redis_cache.cache import RedisCache, ImproperlyConfigured, pool
 from redis.connection import UnixDomainSocketConnection
 
