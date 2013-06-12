@@ -2,7 +2,7 @@ from django.core.cache.backends.base import BaseCache, InvalidCacheBackendError
 from django.core.exceptions import ImproperlyConfigured
 from django.utils import importlib
 from django.utils.datastructures import SortedDict
-from .compat import smart_text, smart_bytes
+from .compat import smart_text, smart_bytes, python_2_unicode_compatible
 
 try:
     import cPickle as pickle
@@ -18,6 +18,7 @@ from redis.connection import UnixDomainSocketConnection, Connection
 from redis.connection import DefaultParser
 
 
+@python_2_unicode_compatible
 class CacheKey(object):
     """
     A stub string class that we can use to check if a key was created already.
@@ -29,13 +30,10 @@ class CacheKey(object):
         return self._key == other
 
     def __str__(self):
-        return self.__unicode__()
+        return smart_text(self._key)
 
     def __repr__(self):
-        return self.__unicode__()
-
-    def __unicode__(self):
-        return smart_text(self._key)
+        return repr(self._key)
 
     def __hash__(self):
         return hash(self._key)

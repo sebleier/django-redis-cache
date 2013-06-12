@@ -1,3 +1,7 @@
+import sys
+
+PY3 = (sys.version_info >= (3,))
+
 try:
     # Django 1.5+
     from django.utils.encoding import smart_text, smart_bytes
@@ -6,3 +10,19 @@ except ImportError:
     from django.utils.encoding import smart_unicode, smart_str
     smart_text = smart_unicode
     smart_bytes = smart_str
+
+
+def python_2_unicode_compatible(klass):
+    """
+    A decorator that defines __unicode__ and __str__ methods under Python 2.
+    Under Python 3 it does nothing.
+
+    To support Python 2 and 3 with a single code base, define a __str__ method
+    returning text and apply this decorator to the class.
+
+    Backported from Django 1.5+.
+    """
+    if not PY3:
+        klass.__unicode__ = klass.__str__
+        klass.__str__ = lambda self: self.__unicode__().encode('utf-8')
+    return klass
