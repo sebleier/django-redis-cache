@@ -11,6 +11,9 @@ setup(
     install_requires=['redis>=2.4.5',],
     classifiers = [
         "Programming Language :: Python",
+        "Programming Language :: Python :: 2.6",
+        "Programming Language :: Python :: 2.7",
+        "Programming Language :: Python :: 3.3",
         "Operating System :: OS Independent",
         "Topic :: Software Development :: Libraries",
         "Topic :: Utilities",
