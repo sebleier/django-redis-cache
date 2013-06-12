@@ -254,7 +254,7 @@ class CacheClass(BaseCache):
         if not keys:
             return {}
         recovered_data = SortedDict()
-        new_keys = map(lambda key: self.make_key(key, version=version), keys)
+        new_keys = list(map(lambda key: self.make_key(key, version=version), keys))
         map_keys = dict(zip(new_keys, keys))
         results = self._client.mget(new_keys)
         for key, value in zip(new_keys, results):
