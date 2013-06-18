@@ -4,8 +4,18 @@ Redis Django Cache Backend
 
 A simple Redis cache backend for Django
 
-Changes in 0.9.0
-================
+
+Changelog
+=========
+
+0.10.0
+------
+
+Adds Support for Python 3.3 and Django 1.5 and 1.6.  Huge thanks to Carl Meyer
+for his work.
+
+0.9.0
+-----
 
 Redis cache now allows you to use either a TCP connection or Unix domain
 socket to connect to your redis server.  Using a TCP connection is useful for
