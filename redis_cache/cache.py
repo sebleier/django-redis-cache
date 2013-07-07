@@ -2,6 +2,7 @@ from django.core.cache.backends.base import BaseCache, InvalidCacheBackendError
 from django.core.exceptions import ImproperlyConfigured
 from django.utils import importlib
 from django.utils.datastructures import SortedDict
+from django.conf import settings
 from .compat import smart_text, smart_bytes, bytes_type, python_2_unicode_compatible
 
 try:
@@ -16,6 +17,13 @@ except ImportError:
         "Redis cache backend requires the 'redis-py' library")
 from redis.connection import UnixDomainSocketConnection, Connection
 from redis.connection import DefaultParser
+
+try:
+    from nydus.db import create_cluster
+except ImportError:
+    pass
+
+NYDUS_CACHE_BACKEND = getattr(settings, 'NYDUS_CACHE_BACKEND', False)
 
 
 @python_2_unicode_compatible
@@ -100,14 +108,23 @@ class CacheClass(BaseCache):
             'port': port,
             'unix_socket_path': unix_socket_path,
         }
-        connection_pool = pool.get_connection_pool(
-            parser_class=self.parser_class,
-            **kwargs
-        )
-        self._client = redis.Redis(
-            connection_pool=connection_pool,
-            **kwargs
-        )
+        if not NYDUS_CACHE_BACKEND:
+            connection_pool = pool.get_connection_pool(
+                parser_class=self.parser_class,
+                **kwargs
+            )
+            self._client = redis.Redis(
+                connection_pool=connection_pool,
+                **kwargs
+            )
+        else:
+            self._client = create_cluster({
+                'backend': 'nydus.db.backends.redis.Redis',
+                'router': 'nydus.db.routers.keyvalue.PartitionRouter',
+                'hosts': {
+                    0: kwargs,
+                },
+            })
 
     @property
     def server(self):

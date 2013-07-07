@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import time
+import unittest
 
 try:
     import cPickle as pickle
@@ -10,7 +11,7 @@ from django import VERSION
 from django.core.cache import get_cache
 from django.test import TestCase
 from .models import Poll, expensive_calculation
-from redis_cache.cache import RedisCache, ImproperlyConfigured, pool
+from redis_cache.cache import RedisCache, ImproperlyConfigured, pool, NYDUS_CACHE_BACKEND
 from redis.connection import UnixDomainSocketConnection
 
 
@@ -30,6 +31,7 @@ class RedisCacheTests(TestCase):
         # use DB 16 for testing and hope there isn't any important data :->
         self.reset_pool()
         self.cache = self.get_cache()
+        CLIENT_NAME = self.cache._client.__class__.__name__
 
     def tearDown(self):
         self.cache.clear()
@@ -51,6 +53,7 @@ class RedisCacheTests(TestCase):
     def test_bad_port_initialization(self):
         self.assertRaises(ImproperlyConfigured, self.get_cache, 'redis_cache.cache://127.0.0.1:not_a_number?db=15')
 
+    @unittest.skipIf(NYDUS_CACHE_BACKEND == True, "Skip test for nydus")
     def test_default_initialization(self):
         self.reset_pool()
         if VERSION[0] == 1 and VERSION[1] < 3:
@@ -347,6 +350,7 @@ class RedisCacheTests(TestCase):
         a = self.cache.get('a')
         self.assertEqual(a, '1.1')
 
+    @unittest.skipIf(NYDUS_CACHE_BACKEND == True, "Skip test for nydus")
     def test_multiple_connection_pool_connections(self):
         pool._connection_pools = {}
         c1 = get_cache('redis_cache.cache://127.0.0.1:6379?db=15')
