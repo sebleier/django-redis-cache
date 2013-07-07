@@ -31,7 +31,6 @@ class RedisCacheTests(TestCase):
         # use DB 16 for testing and hope there isn't any important data :->
         self.reset_pool()
         self.cache = self.get_cache()
-        CLIENT_NAME = self.cache._client.__class__.__name__
 
     def tearDown(self):
         self.cache.clear()
