@@ -294,7 +294,7 @@ class CacheClass(BaseCache):
         try:
             value = self._client.incr(key, delta)
         except redis.ResponseError:
-            value = self.get(key) + 1
+            value = self.get(key) + delta
             self.set(key, value)
         return value
 
