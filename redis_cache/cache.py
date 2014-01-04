@@ -2,7 +2,8 @@ from django.core.cache.backends.base import BaseCache, InvalidCacheBackendError
 from django.core.exceptions import ImproperlyConfigured
 from django.utils import importlib
 from django.utils.datastructures import SortedDict
-from .compat import smart_text, smart_bytes, bytes_type, python_2_unicode_compatible
+from .compat import (smart_text, smart_bytes, bytes_type,
+                     python_2_unicode_compatible, DEFAULT_TIMEOUT)
 
 try:
     import cPickle as pickle
@@ -45,8 +46,8 @@ class CacheConnectionPool(object):
         self._connection_pools = {}
 
     def get_connection_pool(self, host='127.0.0.1', port=6379, db=1,
-        password=None, parser_class=None,
-        unix_socket_path=None):
+                            password=None, parser_class=None,
+                            unix_socket_path=None):
         connection_identifier = (host, port, db, parser_class, unix_socket_path)
         if not self._connection_pools.get(connection_identifier):
             connection_class = (
@@ -162,7 +163,7 @@ class CacheClass(BaseCache):
             key = CacheKey(key)
         return key
 
-    def add(self, key, value, timeout=None, version=None):
+    def add(self, key, value, timeout=DEFAULT_TIMEOUT, version=None):
         """
         Add a value to the cache, failing if the key already exists.
 
@@ -201,14 +202,14 @@ class CacheClass(BaseCache):
         else:
             return False
 
-    def set(self, key, value, timeout=None, version=None, client=None, _add_only=False):
+    def set(self, key, value, timeout=DEFAULT_TIMEOUT, version=None, client=None, _add_only=False):
         """
         Persist a value to the cache, and set an optional expiration time.
         """
         if not client:
             client = self._client
         key = self.make_key(key, version=version)
-        if timeout is None:
+        if timeout is DEFAULT_TIMEOUT:
             timeout = self.default_timeout
 
         # If ``value`` is not an int, then pickle it
@@ -269,7 +270,7 @@ class CacheClass(BaseCache):
             recovered_data[map_keys[key]] = value
         return recovered_data
 
-    def set_many(self, data, timeout=None, version=None):
+    def set_many(self, data, timeout=DEFAULT_TIMEOUT, version=None):
         """
         Set a bunch of values in the cache at once from a dict of key/value
         pairs. This is much more efficient than calling set() multiple times.
@@ -324,7 +325,7 @@ class RedisCache(CacheClass):
         ttl = self._client.ttl(old_key)
         if value is None:
             raise ValueError("Key '%s' not found" % key)
-        new_key = self.make_key(key, version=version+delta)
+        new_key = self.make_key(key, version=version + delta)
         # TODO: See if we can check the version of Redis, since 2.2 will be able
         # to rename volitile keys.
         self.set(new_key, value, timeout=ttl)
