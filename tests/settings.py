@@ -14,7 +14,7 @@ CACHES = {
     'default': {
         'BACKEND': 'redis_cache.RedisCache',
         'LOCATION': '127.0.0.1:6379',
-        'OPTIONS': { # optional
+        'OPTIONS': {  # optional
             'DB': 15,
             'PASSWORD': 'yadayada',
         },
@@ -22,3 +22,5 @@ CACHES = {
 }
 
 ROOT_URLCONF = 'tests.urls'
+
+SECRET_KEY = 'blabla'
