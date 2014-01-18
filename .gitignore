@@ -13,3 +13,4 @@ development_settings.py
 .pydevproject
 .settings
 dist/*
+MANIFEST
