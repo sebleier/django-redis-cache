@@ -82,7 +82,6 @@ On Django >= 1.3::
                     'max_connections': 50,
                     'timeout': 20,
                 }
-                'MAX_CONNECTIONS': 1000,
             },
         },
     }
