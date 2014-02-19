@@ -47,8 +47,8 @@ class CacheConnectionPool(object):
 
     def get_connection_pool(self, host='127.0.0.1', port=6379, db=1,
                             password=None, parser_class=None,
-                            unix_socket_path=None):
-        connection_identifier = (host, port, db, parser_class, unix_socket_path)
+                            unix_socket_path=None, max_connections=None):
+        connection_identifier = (host, port, db, parser_class, unix_socket_path, max_connections)
         if not self._connection_pools.get(connection_identifier):
             connection_class = (
                 unix_socket_path and UnixDomainSocketConnection or Connection
@@ -58,6 +58,7 @@ class CacheConnectionPool(object):
                 'password': password,
                 'connection_class': connection_class,
                 'parser_class': parser_class,
+                'max_connections': max_connections,
             }
             if unix_socket_path is None:
                 kwargs.update({
@@ -101,8 +102,10 @@ class CacheClass(BaseCache):
             'port': port,
             'unix_socket_path': unix_socket_path,
         }
+
         connection_pool = pool.get_connection_pool(
             parser_class=self.parser_class,
+            max_connections=self.max_connections,
             **kwargs
         )
         self._client = redis.Redis(
@@ -121,6 +124,10 @@ class CacheClass(BaseCache):
     @property
     def options(self):
         return self.params.get('OPTIONS', {})
+
+    @property
+    def max_connections(self):
+        return self.options.get('MAX_CONNECTIONS', None)
 
     @property
     def db(self):

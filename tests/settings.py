@@ -17,6 +17,7 @@ CACHES = {
         'OPTIONS': {  # optional
             'DB': 15,
             'PASSWORD': 'yadayada',
+            'MAX_CONNECTIONS': 2,
         },
     },
 }

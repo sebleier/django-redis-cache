@@ -10,16 +10,20 @@ from django import VERSION
 from django.core.cache import get_cache
 from django.test import TestCase
 from .models import Poll, expensive_calculation
-from redis_cache.cache import RedisCache, ImproperlyConfigured, pool
+import redis
 from redis.connection import UnixDomainSocketConnection
+from redis_cache.cache import RedisCache, ImproperlyConfigured, pool
 
 
 # functions/classes for complex data type tests
 def f():
     return 42
+
+
 class C:
     def m(n):
         return 24
+
 
 class RedisCacheTests(TestCase):
     """
@@ -349,11 +353,11 @@ class RedisCacheTests(TestCase):
 
     def test_multiple_connection_pool_connections(self):
         pool._connection_pools = {}
-        c1 = get_cache('redis_cache.cache://127.0.0.1:6379?db=15')
+        get_cache('redis_cache.cache://127.0.0.1:6379?db=15')
         self.assertEqual(len(pool._connection_pools), 1)
-        c2 = get_cache('redis_cache.cache://127.0.0.1:6379?db=14')
+        get_cache('redis_cache.cache://127.0.0.1:6379?db=14')
         self.assertEqual(len(pool._connection_pools), 2)
-        c3 = get_cache('redis_cache.cache://127.0.0.1:6379?db=15')
+        get_cache('redis_cache.cache://127.0.0.1:6379?db=15')
         self.assertEqual(len(pool._connection_pools), 2)
 
     def test_setting_string_integer_retrieves_string(self):
@@ -366,8 +370,31 @@ class RedisCacheTests(TestCase):
         self.assertTrue(self.cache.set("bool_f", False))
         self.assertEqual(self.cache.get("bool_f"), False)
 
+    def test_max_connections(self):
+        pool._connection_pools = {}
+        cache = get_cache('default')
 
+        def noop(*args, **kwargs):
+            pass
+
+        release = cache._client.connection_pool.release
+        cache._client.connection_pool.release = noop
+        self.assertEqual(cache._client.connection_pool.max_connections, 2)
+
+        cache.set('a', 'a')
+        self.assertEqual(cache._client.connection_pool._created_connections, 1)
+
+        cache.set('a', 'a')
+        self.assertEqual(cache._client.connection_pool._created_connections, 2)
+
+        with self.assertRaises(redis.ConnectionError):
+            cache.set('a', 'a')
+
+        self.assertEqual(cache._client.connection_pool._created_connections, 2)
+        cache._client.connection_pool.release = release
+        cache._client.connection_pool.max_connections = 2**31
 
 
 if __name__ == '__main__':
+    import unittest
     unittest.main()
