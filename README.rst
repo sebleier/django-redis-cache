@@ -8,6 +8,12 @@ A simple Redis cache backend for Django
 Changelog
 =========
 
+0.11.0
+------
+
+* Adds support for specifying the connection pool class.
+* Adds ability to set the max connections for the connection pool.
+
 0.10.0
 ------
 
@@ -64,7 +70,9 @@ On Django >= 1.3::
             'OPTIONS': {
                 'DB': 1,
                 'PASSWORD': 'yadayada',
-                'PARSER_CLASS': 'redis.connection.HiredisParser'
+                'PARSER_CLASS': 'redis.connection.HiredisParser',
+                'CONNECTION_POOL_CLASS': 'redis.BlockingConnectionPool',
+                'MAX_CONNECTIONS': 1000,
             },
         },
     }
