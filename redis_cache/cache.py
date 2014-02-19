@@ -2,7 +2,6 @@ from django.core.cache.backends.base import BaseCache, InvalidCacheBackendError
 from django.core.exceptions import ImproperlyConfigured
 from django.utils import importlib
 from django.utils.datastructures import SortedDict
-from django.utils.importlib import import_module
 from .compat import (smart_text, smart_bytes, bytes_type,
                      python_2_unicode_compatible, DEFAULT_TIMEOUT)
 
@@ -48,8 +47,9 @@ class CacheConnectionPool(object):
 
     def get_connection_pool(self, host='127.0.0.1', port=6379, db=1,
                             password=None, parser_class=None,
-                            unix_socket_path=None, max_connections=None, connection_pool_class=None):
-        connection_identifier = (host, port, db, parser_class, unix_socket_path, max_connections, connection_pool_class)
+                            unix_socket_path=None, connection_pool_class=None,
+                            connection_pool_class_kwargs=None):
+        connection_identifier = (host, port, db, parser_class, unix_socket_path, connection_pool_class)
         if not self._connection_pools.get(connection_identifier):
             connection_class = (
                 unix_socket_path and UnixDomainSocketConnection or Connection
@@ -59,8 +59,8 @@ class CacheConnectionPool(object):
                 'password': password,
                 'connection_class': connection_class,
                 'parser_class': parser_class,
-                'max_connections': max_connections,
             }
+            kwargs.update(connection_pool_class_kwargs)
             if unix_socket_path is None:
                 kwargs.update({
                     'host': host,
@@ -106,8 +106,8 @@ class CacheClass(BaseCache):
 
         connection_pool = pool.get_connection_pool(
             parser_class=self.parser_class,
-            max_connections=self.max_connections,
             connection_pool_class=self.connection_pool_class,
+            connection_pool_class_kwargs=self.connection_pool_class_kwargs,
             **kwargs
         )
         self._client = redis.Redis(
@@ -128,19 +128,19 @@ class CacheClass(BaseCache):
         return self.params.get('OPTIONS', {})
 
     @property
-    def max_connections(self):
-        return self.options.get('MAX_CONNECTIONS', None)
+    def connection_pool_class(self):
+        cls = self.options.get('CONNECTION_POOL_CLASS', 'redis.ConnectionPool')
+        mod_path, cls_name = cls.rsplit('.', 1)
+        try:
+            mod = importlib.import_module(mod_path)
+            pool_class = getattr(mod, cls_name)
+        except (AttributeError, ImportError):
+            raise ImproperlyConfigured("Could not find connection pool class '%s'" % cls)
+        return pool_class
 
     @property
-    def connection_pool_class(self):
-        pool_class = self.options.get('CONNECTION_POOL_CLASS', 'redis.ConnectionPool')
-        module_name, class_name = pool_class.rsplit('.', 1)
-        module = import_module(module_name)
-        try:
-            cls = getattr(module, class_name)
-        except AttributeError:
-            raise ImportError('cannot import name %s' % class_name)
-        return cls
+    def connection_pool_class_kwargs(self):
+        return self.options.get('CONNECTION_POOL_CLASS_KWARGS', {})
 
     @property
     def db(self):

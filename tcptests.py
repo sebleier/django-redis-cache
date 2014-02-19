@@ -20,10 +20,11 @@ cache_settings = {
             'LOCATION': '127.0.0.1:6379',
             'OPTIONS': {
                 'DB': 15,
-                'PASSWORD': 'yadayada',
                 'PARSER_CLASS': 'redis.connection.HiredisParser',
-                'MAX_CONNECTIONS': 2,
                 'CONNECTION_POOL_CLASS': 'redis.ConnectionPool',
+                'CONNECTION_POOL_CLASS_KWARGS': {
+                    'max_connections': 2
+                }
             },
         },
     },
