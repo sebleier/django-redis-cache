@@ -23,6 +23,7 @@ cache_settings = {
                 'PASSWORD': 'yadayada',
                 'PARSER_CLASS': 'redis.connection.HiredisParser',
                 'MAX_CONNECTIONS': 2,
+                'CONNECTION_POOL_CLASS': 'redis.ConnectionPool',
             },
         },
     },

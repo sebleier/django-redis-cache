@@ -379,18 +379,12 @@ class RedisCacheTests(TestCase):
 
         release = cache._client.connection_pool.release
         cache._client.connection_pool.release = noop
-        self.assertEqual(cache._client.connection_pool.max_connections, 2)
-
         cache.set('a', 'a')
-        self.assertEqual(cache._client.connection_pool._created_connections, 1)
-
         cache.set('a', 'a')
-        self.assertEqual(cache._client.connection_pool._created_connections, 2)
 
         with self.assertRaises(redis.ConnectionError):
             cache.set('a', 'a')
 
-        self.assertEqual(cache._client.connection_pool._created_connections, 2)
         cache._client.connection_pool.release = release
         cache._client.connection_pool.max_connections = 2**31
 
