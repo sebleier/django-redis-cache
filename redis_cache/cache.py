@@ -208,7 +208,7 @@ class CacheClass(BaseCache):
         return result
 
     def _set(self, key, value, timeout, client, _add_only=False):
-        if timeout == 0:
+        if timeout is None or timeout == 0:
             if _add_only:
                 return client.setnx(key, value)
             return client.set(key, value)
@@ -231,12 +231,14 @@ class CacheClass(BaseCache):
         key = self.make_key(key, version=version)
         if timeout is DEFAULT_TIMEOUT:
             timeout = self.default_timeout
+        if timeout is not None:
+            timeout = int(timeout)
 
         # If ``value`` is not an int, then pickle it
         if not isinstance(value, int) or isinstance(value, bool):
-            result = self._set(key, pickle.dumps(value), int(timeout), client, _add_only)
+            result = self._set(key, pickle.dumps(value), timeout, client, _add_only)
         else:
-            result = self._set(key, value, int(timeout), client, _add_only)
+            result = self._set(key, value, timeout, client, _add_only)
         # result is a boolean
         return result
 
