@@ -8,6 +8,13 @@ A cache backend for Django using the Redis datastructure server.
 Changelog
 =========
 
+0.13.0
+------
+
+* Adds custom `has_key` implementation that uses Redis's `exists` command.
+    This will speed `has_key` up drastically if the key under question is
+    extremely large.
+
 0.12.0
 ------
 
