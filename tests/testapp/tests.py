@@ -216,10 +216,13 @@ class RedisCacheTests(TestCase):
         self.assertEqual(self.cache.get("expire2"), "newvalue")
         self.assertEqual(self.cache.has_key("expire3"), False)
 
-    def test_set_expiration_timeout_None(self):
-        key, value = self.cache.make_key('key'), 'value'
-        self.cache.set(key, value)
-        self.assertTrue(self.cache._client.ttl(key) > 0)
+    def test_set_expiration_default_timeout(self):
+        self.cache.set('a', 'a')
+        self.assertTrue(self.cache._client.ttl(self.cache.make_key('a')) > 0)
+
+    def test_set_expiration_no_timeout(self):
+        self.cache.set('a', 'a', timeout=None)
+        self.assertTrue(self.cache._client.ttl(self.cache.make_key('a')) is None)
 
     def test_set_expiration_timeout_zero(self):
         key, value = self.cache.make_key('key'), 'value'
