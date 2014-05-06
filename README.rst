@@ -2,11 +2,19 @@
 Redis Django Cache Backend
 ==========================
 
-A simple Redis cache backend for Django
+A cache backend for Django using the Redis datastructure server.
 
 
 Changelog
 =========
+
+0.12.0
+------
+
+* Keys can now be kept alive indefinitely by setting the timeout to None,
+    e.g. `cache.set('key', 'value', timeout=None)`
+* Adds `ttl` method to the cache.  `cache.ttl(key)` will return the number of
+    seconds before it expires or None if the key is not volitile.
 
 0.11.1
 ------
@@ -101,6 +109,7 @@ On Django >= 1.3::
         },
     }
 
+.. _redis: http://redis.io
 .. _redis-py: http://github.com/andymccurdy/redis-py/
 .. _hiredis: https://github.com/pietern/hiredis-py
 
