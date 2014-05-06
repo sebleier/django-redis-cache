@@ -321,6 +321,18 @@ class CacheClass(BaseCache):
             self.set(key, value)
         return value
 
+    def ttl(self, key, version=None):
+        """
+        Returns the 'time-to-live' of a key.  If the key is not volitile, i.e.
+        it has not set expiration, then the value returned is None.  Otherwise,
+        the value is the number of seconds remaining.  If the key does not exist,
+        0 is returned.
+        """
+        key = self.make_key(key, version=version)
+        if self._client.exists(key):
+            return self._client.ttl(key)
+        return 0
+
 
 class RedisCache(CacheClass):
     """
@@ -337,7 +349,7 @@ class RedisCache(CacheClass):
         Adds delta to the cache version for the supplied key. Returns the
         new version.
 
-        Note: In Redis 2.0 you cannot rename a volitle key, so we have to move
+        Note: In Redis 2.0 you cannot rename a volitile key, so we have to move
         the value from the old key to the new key and maintain the ttl.
         """
         if version is None:
@@ -353,3 +365,4 @@ class RedisCache(CacheClass):
         self.set(new_key, value, timeout=ttl)
         self.delete(old_key)
         return version + delta
+
