@@ -418,6 +418,13 @@ class RedisCacheTests(TestCase):
         ttl = self.cache.ttl('does_not_exist')
         self.assertEqual(ttl, 0)
 
+    def test_has_key_with_no_key(self):
+        self.assertFalse(self.cache.has_key('does_not_exist'))
+
+    def test_has_key_with_key(self):
+        self.cache.set('a', 'a')
+        self.assertTrue(self.cache.has_key('a'))
+
 
 if __name__ == '__main__':
     import unittest

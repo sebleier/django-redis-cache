@@ -333,6 +333,13 @@ class CacheClass(BaseCache):
             return self._client.ttl(key)
         return 0
 
+    def has_key(self, key, version=None):
+        """
+        Returns True if the key is in the cache and has not expired.
+        """
+        key = self.make_key(key, version=version)
+        return self._client.exists(key)
+
 
 class RedisCache(CacheClass):
     """
