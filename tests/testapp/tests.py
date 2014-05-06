@@ -406,7 +406,7 @@ class RedisCacheTests(TestCase):
         ttl = self.cache.ttl('a')
         self.assertAlmostEqual(ttl, 1)
 
-        time.sleep(1)
+        time.sleep(2)
 
         ttl = self.cache.ttl('a')
         self.assertEqual(ttl, 0)
