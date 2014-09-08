@@ -20,15 +20,22 @@ cache_settings = {
             'LOCATION': '/tmp/redis.sock',
             'OPTIONS': {
                 'DB': 15,
-                'PASSWORD': 'yadayada',
                 'PARSER_CLASS': 'redis.connection.HiredisParser'
             },
         },
     },
+    'MIDDLEWARE_CLASSES': ('django.middleware.common.CommonMiddleware',
+                           'django.middleware.csrf.CsrfViewMiddleware'),
 }
 
 if not settings.configured:
     settings.configure(**cache_settings)
+
+import django
+try:
+    django.setup()
+except AttributeError:
+    pass
 
 from django.test.simple import DjangoTestSuiteRunner
 

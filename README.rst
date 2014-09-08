@@ -116,7 +116,16 @@ On Django >= 1.3::
         },
     }
 
+Tests
+-----
+
+A real redis server is required to test this package, then run tox to test against supported versions::
+
+    $ redis-server --unixsocket /tmp/redis.sock --requirepass yadayada
+    $ tox
+
 .. _redis: http://redis.io
 .. _redis-py: http://github.com/andymccurdy/redis-py/
 .. _hiredis: https://github.com/pietern/hiredis-py
+
 
