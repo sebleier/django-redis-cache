@@ -28,11 +28,19 @@ cache_settings = {
             },
         },
     },
+    'MIDDLEWARE_CLASSES': ('django.middleware.common.CommonMiddleware',
+                           'django.middleware.csrf.CsrfViewMiddleware'),
 }
 
 
 if not settings.configured:
     settings.configure(**cache_settings)
+
+import django
+try:
+    django.setup()
+except AttributeError:
+    pass
 
 from django.test.simple import DjangoTestSuiteRunner
 
