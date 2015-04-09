@@ -45,8 +45,10 @@ class RedisCacheTests(TestCase):
     def get_cache(self, backend=None):
         if VERSION[0] == 1 and VERSION[1] < 3:
             cache = get_cache(backend or 'redis_cache.cache://127.0.0.1:6379?db=15')
-        elif VERSION[0] == 1 and VERSION[1] >= 3:
+        elif VERSION[0] == 1 and VERSION[1] >= 3 and VERSION[1] <= 7:
             cache = get_cache(backend or 'default')
+        else:
+            cache = get_cache(backend or 'redis_cache.cache.CacheClass', LOCATION='127.0.0.1:6379')
         return cache
 
     def test_bad_db_initialization(self):
@@ -356,11 +358,11 @@ class RedisCacheTests(TestCase):
 
     def test_multiple_connection_pool_connections(self):
         pool._connection_pools = {}
-        get_cache('redis_cache.cache://127.0.0.1:6379?db=15')
+        get_cache('redis_cache.cache.CacheClass', LOCATION='127.0.0.1:6379', OPTIONS={'DB': 15})
         self.assertEqual(len(pool._connection_pools), 1)
-        get_cache('redis_cache.cache://127.0.0.1:6379?db=14')
+        get_cache('redis_cache.cache.CacheClass', LOCATION='127.0.0.1:6379', OPTIONS={'DB': 14})
         self.assertEqual(len(pool._connection_pools), 2)
-        get_cache('redis_cache.cache://127.0.0.1:6379?db=15')
+        get_cache('redis_cache.cache.CacheClass', LOCATION='127.0.0.1:6379', OPTIONS={'DB': 15})
         self.assertEqual(len(pool._connection_pools), 2)
 
     def test_setting_string_integer_retrieves_string(self):

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import sys
-from os.path import dirname, abspath
+from os.path import dirname, abspath, join
+import django
 from django.conf import settings
 
 
@@ -10,8 +11,9 @@ cache_settings = {
             'ENGINE': 'django.db.backends.sqlite3',
         }
     },
+    'MIDDLEWARE_CLASSES':(),
     'INSTALLED_APPS': [
-        'tests.testapp',
+        'testapp',
     ],
     'ROOT_URLCONF': 'tests.urls',
     'CACHES': {
@@ -34,14 +36,21 @@ cache_settings = {
 if not settings.configured:
     settings.configure(**cache_settings)
 
-from django.test.simple import DjangoTestSuiteRunner
+try:
+    from django.test.simple import DjangoTestSuiteRunner as TestSuiteRunner
+except ImportError:
+    from django.test.runner import DiscoverRunner as TestSuiteRunner
+
 
 def runtests(*test_args):
     if not test_args:
         test_args = ['testapp']
-    parent = dirname(abspath(__file__))
-    sys.path.insert(0, parent)
-    runner = DjangoTestSuiteRunner(verbosity=1, interactive=True, failfast=False)
+    sys.path.insert(0, join(dirname(abspath(__file__)), 'tests'))
+    try:
+        django.setup()
+    except AttributeError:
+        pass
+    runner = TestSuiteRunner(verbosity=1, interactive=True, failfast=False)
     failures = runner.run_tests(test_args)
     sys.exit(failures)
 

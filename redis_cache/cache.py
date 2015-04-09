@@ -1,9 +1,13 @@
 from django.core.cache.backends.base import BaseCache, InvalidCacheBackendError
 from django.core.exceptions import ImproperlyConfigured
-from django.utils import importlib
 from django.utils.datastructures import SortedDict
 from .compat import (smart_text, smart_bytes, bytes_type,
                      python_2_unicode_compatible, DEFAULT_TIMEOUT)
+
+try:
+    import importlib
+except ImportError:
+    from django.utils import importlib
 
 try:
     import cPickle as pickle
@@ -49,8 +53,9 @@ class CacheConnectionPool(object):
                             password=None, parser_class=None,
                             unix_socket_path=None, connection_pool_class=None,
                             connection_pool_class_kwargs=None):
-        connection_identifier = (host, port, db, parser_class, unix_socket_path, connection_pool_class)
-        if not self._connection_pools.get(connection_identifier):
+        connection_identifier = (host, port, db, unix_socket_path)
+        pool = self._connection_pools.get(connection_identifier)
+        if pool is None:
             connection_class = (
                 unix_socket_path and UnixDomainSocketConnection or Connection
             )
