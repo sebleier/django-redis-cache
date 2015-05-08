@@ -71,17 +71,9 @@ pip install `hiredis`_.  This is the recommended parser class.
 Usage
 -----
 
-1. Run ``python setup.py install`` to install,
-   or place ``redis_cache`` on your Python path.
+1. Run ``pip install django-redis-cache``.
 
 2. Modify your Django settings to use ``redis_cache`` :
-
-On Django < 1.3::
-
-    CACHE_BACKEND = 'redis_cache.cache://<host>:<port>'
-
-On Django >= 1.3::
-
 
     # When using TCP connections
     CACHES = {
