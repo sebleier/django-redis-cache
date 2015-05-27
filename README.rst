@@ -73,7 +73,9 @@ Usage
 
 1. Run ``pip install django-redis-cache``.
 
-2. Modify your Django settings to use ``redis_cache`` :
+2. Modify your Django settings to use ``redis_cache``.
+
+.. code:: python
 
     # When using TCP connections
     CACHES = {
