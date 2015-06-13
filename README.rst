@@ -10,6 +10,10 @@ Redis Django Cache Backend
     :target: https://pypi.python.org/pypi/django-redis-cache/
     :alt: Latest Version
 
+.. image:: https://img.shields.io/travis/sebleier/django-redis-cache.svg
+    :target: https://travis-ci.org/sebleier/django-redis-cache
+    :alt: Travis-ci Build
+
 A Redis cache backend for Django
 
 Changelog
