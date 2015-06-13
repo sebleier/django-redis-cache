@@ -13,4 +13,9 @@ development_settings.py
 .pydevproject
 .settings
 dist/*
+dump.rdb
+dist/*
 MANIFEST
+.venv
+redis/
+*/_build/

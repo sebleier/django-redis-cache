@@ -1,18 +1,19 @@
 # -*- coding: utf-8 -*-
-
+from hashlib import sha1
 import time
+import unittest
 
 try:
     import cPickle as pickle
 except ImportError:
     import pickle
-from django import VERSION
 from django.core.cache import get_cache
-from django.test import TestCase
-from .models import Poll, expensive_calculation
+
 import redis
-from redis.connection import UnixDomainSocketConnection
-from redis_cache.cache import RedisCache, ImproperlyConfigured, pool
+
+from tests.testapp.models import Poll, expensive_calculation
+from redis_cache.cache import RedisCache, pool
+from redis_cache.compat import DEFAULT_TIMEOUT
 
 
 # functions/classes for complex data type tests
@@ -25,49 +26,28 @@ class C:
         return 24
 
 
-class RedisCacheTests(TestCase):
-    """
-    A common set of tests derived from Django's own cache tests
+class BaseRedisTestCase(object):
 
-    """
     def setUp(self):
         # use DB 16 for testing and hope there isn't any important data :->
         self.reset_pool()
         self.cache = self.get_cache()
 
     def tearDown(self):
+        # Sometimes it will be necessary to skip this method because we need to test default
+        # initialization and that may be using a different port than the test redis server.
+        if hasattr(self, '_skip_tearDown') and self._skip_tearDown:
+            self._skip_tearDown = False
+            return
         self.cache.clear()
 
     def reset_pool(self):
         if hasattr(self, 'cache'):
-            self.cache._client.connection_pool.disconnect()
+            for client in self.cache.clients.itervalues():
+                client.connection_pool.disconnect()
 
     def get_cache(self, backend=None):
-        if VERSION[0] == 1 and VERSION[1] < 3:
-            cache = get_cache(backend or 'redis_cache.cache://127.0.0.1:6379?db=15')
-        elif VERSION[0] == 1 and VERSION[1] >= 3 and VERSION[1] <= 7:
-            cache = get_cache(backend or 'default')
-        else:
-            cache = get_cache(backend or 'redis_cache.cache.CacheClass', LOCATION='127.0.0.1:6379')
-        return cache
-
-    def test_bad_db_initialization(self):
-        self.assertRaises(ImproperlyConfigured, self.get_cache, 'redis_cache.cache://127.0.0.1:6379?db=not_a_number')
-
-    def test_bad_port_initialization(self):
-        self.assertRaises(ImproperlyConfigured, self.get_cache, 'redis_cache.cache://127.0.0.1:not_a_number?db=15')
-
-    def test_default_initialization(self):
-        self.reset_pool()
-        if VERSION[0] == 1 and VERSION[1] < 3:
-            self.cache = self.get_cache('redis_cache.cache://')
-        elif VERSION[0] == 1 and VERSION[1] >= 3:
-            self.cache = self.get_cache('redis_cache.cache.CacheClass')
-        connection_class = self.cache._client.connection_pool.connection_class
-        if connection_class is not UnixDomainSocketConnection:
-            self.assertEqual(self.cache._client.connection_pool.connection_kwargs['host'], '127.0.0.1')
-            self.assertEqual(self.cache._client.connection_pool.connection_kwargs['port'], 6379)
-        self.assertEqual(self.cache._client.connection_pool.connection_kwargs['db'], 1)
+        return get_cache(backend or 'default')
 
     def test_simple(self):
         # Simple cache set/get works
@@ -78,13 +58,13 @@ class RedisCacheTests(TestCase):
         # A key can be added to a cache
         self.cache.add("addkey1", "value")
         result = self.cache.add("addkey1", "newvalue")
-        self.assertEqual(result, False)
+        self.assertFalse(result)
         self.assertEqual(self.cache.get("addkey1"), "value")
 
     def test_non_existent(self):
         # Non-existent cache keys return as None/default
         # get with non-existent keys
-        self.assertEqual(self.cache.get("does_not_exist"), None)
+        self.assertIsNone(self.cache.get("does_not_exist"))
         self.assertEqual(self.cache.get("does_not_exist", "bang!"), "bang!")
 
     def test_get_many(self):
@@ -93,15 +73,13 @@ class RedisCacheTests(TestCase):
         self.cache.set('b', 'b')
         self.cache.set('c', 'c')
         self.cache.set('d', 'd')
-        self.assertEqual(self.cache.get_many(['a', 'c', 'd']), {'a' : 'a', 'c' : 'c', 'd' : 'd'})
-        self.assertEqual(self.cache.get_many(['a', 'b', 'e']), {'a' : 'a', 'b' : 'b'})
+        self.assertEqual(self.cache.get_many(['a', 'c', 'd']), {'a': 'a', 'c': 'c', 'd': 'd'})
+        self.assertEqual(self.cache.get_many(['a', 'b', 'e']), {'a': 'a', 'b': 'b'})
 
     def test_get_many_with_manual_integer_insertion(self):
         keys = ['a', 'b', 'c', 'd']
-        cache_keys = map(self.cache.make_key, keys)
-        # manually set integers and then get_many
-        for i, key in enumerate(cache_keys):
-            self.cache._client.set(key, i)
+        for i, key in enumerate(keys):
+            self.cache.set(key, i)
         self.assertEqual(self.cache.get_many(keys), {'a': 0, 'b': 1, 'c': 2, 'd': 3})
 
     def test_get_many_with_automatic_integer_insertion(self):
@@ -116,20 +94,20 @@ class RedisCacheTests(TestCase):
         self.cache.set("key2", "eggs")
         self.assertEqual(self.cache.get("key1"), "spam")
         self.cache.delete("key1")
-        self.assertEqual(self.cache.get("key1"), None)
+        self.assertIsNone(self.cache.get("key1"))
         self.assertEqual(self.cache.get("key2"), "eggs")
 
     def test_has_key(self):
         # The cache can be inspected for cache keys
         self.cache.set("hello1", "goodbye1")
-        self.assertEqual(self.cache.has_key("hello1"), True)
-        self.assertEqual(self.cache.has_key("goodbye1"), False)
+        self.assertIn("hello1", self.cache)
+        self.assertNotIn("goodbye1", self.cache)
 
     def test_in(self):
         # The in operator can be used to inspet cache contents
         self.cache.set("hello2", "goodbye2")
-        self.assertEqual("hello2" in self.cache, True)
-        self.assertEqual("goodbye2" in self.cache, False)
+        self.assertIn("hello2", self.cache)
+        self.assertNotIn("goodbye2", self.cache)
 
     def test_incr(self):
         # Cache values can be incremented
@@ -153,13 +131,13 @@ class RedisCacheTests(TestCase):
     def test_data_types(self):
         # Many different data types can be cached
         stuff = {
-            'string'    : 'this is a string',
-            'int'       : 42,
-            'list'      : [1, 2, 3, 4],
-            'tuple'     : (1, 2, 3, 4),
-            'dict'      : {'A': 1, 'B' : 2},
-            'function'  : f,
-            'class'     : C,
+            'string': 'this is a string',
+            'int': 42,
+            'list': [1, 2, 3, 4],
+            'tuple': (1, 2, 3, 4),
+            'dict': {'A': 1, 'B': 2},
+            'function': f,
+            'class': C,
         }
         self.cache.set("stuff", stuff)
         self.assertEqual(self.cache.get("stuff"), stuff)
@@ -216,27 +194,25 @@ class RedisCacheTests(TestCase):
 
         self.cache.add("expire2", "newvalue")
         self.assertEqual(self.cache.get("expire2"), "newvalue")
-        self.assertEqual(self.cache.has_key("expire3"), False)
+        self.assertEqual("expire3" in self.cache, False)
 
-    def test_set_expiration_default_timeout(self):
-        self.cache.set('a', 'a')
-        self.assertTrue(self.cache._client.ttl(self.cache.make_key('a')) > 0)
-
-    def test_set_expiration_no_timeout(self):
-        self.cache.set('a', 'a', timeout=None)
-        self.assertTrue(self.cache._client.ttl(self.cache.make_key('a')) is None)
+    @unittest.skipIf(DEFAULT_TIMEOUT is None, "Version of django doesn't support indefinite timeouts.")
+    def test_set_expiration_timeout_None(self):
+        key, value = 'key', 'value'
+        self.cache.set(key, value, timeout=None)
+        self.assertIsNone(self.cache.ttl(key))
 
     def test_set_expiration_timeout_zero(self):
         key, value = self.cache.make_key('key'), 'value'
         self.cache.set(key, value, timeout=0)
-        self.assertTrue(self.cache._client.ttl(key) is None)
-        self.assertTrue(self.cache.has_key(key))
+        self.assertIsNone(self.cache.get_client(key).ttl(key))
+        self.assertIn(key, self.cache)
 
     def test_set_expiration_timeout_negative(self):
         key, value = self.cache.make_key('key'), 'value'
         self.cache.set(key, value, timeout=-1)
-        self.assertTrue(self.cache._client.ttl(key) is None)
-        self.assertFalse(self.cache.has_key(key))
+        self.assertIsNone(self.cache.get_client(key).ttl(key))
+        self.assertNotIn(key, self.cache)
 
     def test_unicode(self):
         # Unicode values can be cached
@@ -244,7 +220,7 @@ class RedisCacheTests(TestCase):
             u'ascii': u'ascii_value',
             u'unicode_ascii': u'Iñtërnâtiônàlizætiøn1',
             u'Iñtërnâtiônàlizætiøn': u'Iñtërnâtiônàlizætiøn2',
-            u'ascii': {u'x' : 1 }
+            u'ascii': {u'x': 1}
         }
         for (key, value) in stuff.items():
             self.cache.set(key, value)
@@ -270,8 +246,8 @@ class RedisCacheTests(TestCase):
         # set_many takes a second ``timeout`` parameter
         self.cache.set_many({"key1": "spam", "key2": "eggs"}, 1)
         time.sleep(2)
-        self.assertEqual(self.cache.get("key1"), None)
-        self.assertEqual(self.cache.get("key2"), None)
+        self.assertIsNone(self.cache.get("key1"))
+        self.assertIsNone(self.cache.get("key2"))
 
     def test_delete_many(self):
         # Multiple keys can be deleted using delete_many
@@ -279,8 +255,8 @@ class RedisCacheTests(TestCase):
         self.cache.set("key2", "eggs")
         self.cache.set("key3", "ham")
         self.cache.delete_many(["key1", "key2"])
-        self.assertEqual(self.cache.get("key1"), None)
-        self.assertEqual(self.cache.get("key2"), None)
+        self.assertIsNone(self.cache.get("key1"))
+        self.assertIsNone(self.cache.get("key2"))
         self.assertEqual(self.cache.get("key3"), "ham")
 
     def test_clear(self):
@@ -288,54 +264,35 @@ class RedisCacheTests(TestCase):
         self.cache.set("key1", "spam")
         self.cache.set("key2", "eggs")
         self.cache.clear()
-        self.assertEqual(self.cache.get("key1"), None)
-        self.assertEqual(self.cache.get("key2"), None)
+        self.assertIsNone(self.cache.get("key1"))
+        self.assertIsNone(self.cache.get("key2"))
 
     def test_long_timeout(self):
-        '''
-        Using a timeout greater than 30 days makes memcached think
+        """Using a timeout greater than 30 days makes memcached think
         it is an absolute expiration timestamp instead of a relative
         offset. Test that we honour this convention. Refs #12399.
-        '''
-        self.cache.set('key1', 'eggs', 60*60*24*30 + 1) #30 days + 1 second
+        """
+        self.cache.set('key1', 'eggs', 60 * 60 * 24 * 30 + 1)  # 30 days + 1 second
         self.assertEqual(self.cache.get('key1'), 'eggs')
 
-        self.cache.add('key2', 'ham', 60*60*24*30 + 1)
+        self.cache.add('key2', 'ham', 60 * 60 * 24 * 30 + 1)
         self.assertEqual(self.cache.get('key2'), 'ham')
 
-        self.cache.set_many({'key3': 'sausage', 'key4': 'lobster bisque'}, 60*60*24*30 + 1)
+        self.cache.set_many({'key3': 'sausage', 'key4': 'lobster bisque'}, 60 * 60 * 24 * 30 + 1)
         self.assertEqual(self.cache.get('key3'), 'sausage')
         self.assertEqual(self.cache.get('key4'), 'lobster bisque')
 
     def test_incr_version(self):
         if isinstance(self.cache, RedisCache):
-            old_key = "key1"
-            self.cache.set(old_key, "spam", version=1)
-            self.assertEqual(self.cache.make_key(old_key), ':1:key1')
-            new_version = self.cache.incr_version(old_key, 1)
+            key = "key1"
+            self.cache.set(key, "spam", version=1)
+            self.assertEqual(self.cache.make_key(key), ':1:key1')
+            new_version = self.cache.incr_version(key, 1)
             self.assertEqual(new_version, 2)
-            new_key = self.cache.make_key(old_key, version=new_version)
+            new_key = self.cache.make_key(key, version=new_version)
             self.assertEqual(new_key, ':2:key1')
-            self.assertEqual(self.cache.get(old_key), None)
-            self.assertEqual(self.cache.get(new_key), 'spam')
-
-    def test_incr_with_pickled_integer(self):
-        "Testing case where there exists a pickled integer and we increment it"
-        number = 42
-        key = self.cache.make_key("key")
-
-        # manually set value using the redis client
-        self.cache._client.set(key, pickle.dumps(number))
-        new_value = self.cache.incr(key)
-        self.assertEqual(new_value, number + 1)
-
-        # Test that the pickled value was converted to an integer
-        value = int(self.cache._client.get(key))
-        self.assertTrue(isinstance(value, int))
-
-        # now that the value is an integer, let's increment it again.
-        new_value = self.cache.incr(key, 7)
-        self.assertEqual(new_value, number + 8)
+            self.assertIsNone(self.cache.get(key, version=1))
+            self.assertEqual(self.cache.get(key, version=2), 'spam')
 
     def test_pickling_cache_object(self):
         p = pickle.dumps(self.cache)
@@ -343,7 +300,7 @@ class RedisCacheTests(TestCase):
         # Now let's do a simple operation using the unpickled cache object
         cache.add("addkey1", "value")
         result = cache.add("addkey1", "newvalue")
-        self.assertEqual(result, False)
+        self.assertFalse(result)
         self.assertEqual(cache.get("addkey1"), "value")
 
     def test_float_caching(self):
@@ -356,24 +313,100 @@ class RedisCacheTests(TestCase):
         a = self.cache.get('a')
         self.assertEqual(a, '1.1')
 
-    def test_multiple_connection_pool_connections(self):
-        pool._connection_pools = {}
-        get_cache('redis_cache.cache.CacheClass', LOCATION='127.0.0.1:6379', OPTIONS={'DB': 15})
-        self.assertEqual(len(pool._connection_pools), 1)
-        get_cache('redis_cache.cache.CacheClass', LOCATION='127.0.0.1:6379', OPTIONS={'DB': 14})
-        self.assertEqual(len(pool._connection_pools), 2)
-        get_cache('redis_cache.cache.CacheClass', LOCATION='127.0.0.1:6379', OPTIONS={'DB': 15})
-        self.assertEqual(len(pool._connection_pools), 2)
-
     def test_setting_string_integer_retrieves_string(self):
         self.assertTrue(self.cache.set("foo", "1"))
         self.assertEqual(self.cache.get("foo"), "1")
 
     def test_setting_bool_retrieves_bool(self):
         self.assertTrue(self.cache.set("bool_t", True))
-        self.assertEqual(self.cache.get("bool_t"), True)
+        self.assertTrue(self.cache.get("bool_t"))
         self.assertTrue(self.cache.set("bool_f", False))
-        self.assertEqual(self.cache.get("bool_f"), False)
+        self.assertFalse(self.cache.get("bool_f"))
+
+    def test_delete_pattern(self):
+        data = {
+            'a': 'a',
+            'b': 'b',
+            'aa': 'aa',
+            'bb': 'bb',
+            'aaa': 'aaa',
+            'bbb': 'bbb',
+        }
+        self.cache.set_many(data)
+        self.cache.delete_pattern('aa*')
+        items = self.cache.get_many(data.keys())
+        self.assertEqual(len(items), 4)
+
+        self.cache.delete_pattern('b?b')
+        items = self.cache.get_many(data.keys())
+        self.assertEqual(len(items), 3)
+
+    def test_clearing_using_version(self):
+        self.cache.set('a', 'a', version=1)
+        self.cache.set('b', 'b', version=1)
+        self.cache.set('a', 'a', version=2)
+        self.cache.set('b', 'b', version=2)
+
+        values = self.cache.get_many(['a', 'b'], version=1)
+        self.assertEqual(len(values), 2)
+
+        values = self.cache.get_many(['a', 'b'], version=2)
+        self.assertEqual(len(values), 2)
+
+        self.cache.clear(version=2)
+
+        values = self.cache.get_many(['a', 'b'], version=1)
+        self.assertEqual(len(values), 2)
+
+        values = self.cache.get_many(['a', 'b'], version=2)
+        self.assertEqual(len(values), 0)
+
+    def test_reinsert_keys(self):
+        self.cache._pickle_version = 0
+        for i in range(2000):
+            s = sha1(str(i)).hexdigest()
+            self.cache.set(s, self.cache)
+        self.cache._pickle_version = -1
+        self.cache.reinsert_keys()
+
+    def test_ttl_of_reinsert_keys(self):
+        self.cache.set('a', 'a', 5)
+        self.assertEqual(self.cache.get('a'), 'a')
+        self.cache.set('b', 'b', 5)
+        self.cache.reinsert_keys()
+        self.assertEqual(self.cache.get('a'), 'a')
+        self.assertGreater(self.cache.get_client('a').ttl(self.cache.make_key('a')), 1)
+        self.assertEqual(self.cache.get('b'), 'b')
+        self.assertGreater(self.cache.get_client('b').ttl(self.cache.make_key('b')), 1)
+
+    def test_get_or_set(self):
+
+        def expensive_function():
+            expensive_function.num_calls += 1
+            return 42
+
+        expensive_function.num_calls = 0
+        self.assertEqual(expensive_function.num_calls, 0)
+        value = self.cache.get_or_set('a', expensive_function, 1)
+        self.assertEqual(expensive_function.num_calls, 1)
+        self.assertEqual(value, 42)
+
+        value = self.cache.get_or_set('a', expensive_function, 1)
+        self.assertEqual(expensive_function.num_calls, 1)
+        self.assertEqual(value, 42)
+
+        value = self.cache.get_or_set('a', expensive_function, 1)
+        self.assertEqual(expensive_function.num_calls, 1)
+        self.assertEqual(value, 42)
+
+        time.sleep(2)
+        value = self.cache.get_or_set('a', expensive_function, 1)
+        self.assertEqual(expensive_function.num_calls, 2)
+        self.assertEqual(value, 42)
+
+    def assertMaxConnection(self, cache, max_num):
+        for client in cache.clients.itervalues():
+            self.assertLessEqual(client.connection_pool._created_connections, max_num)
 
     def test_max_connections(self):
         pool._connection_pools = {}
@@ -382,43 +415,26 @@ class RedisCacheTests(TestCase):
         def noop(*args, **kwargs):
             pass
 
-        release = cache._client.connection_pool.release
-        cache._client.connection_pool.release = noop
+        releases = {}
+        for client in cache.clients.itervalues():
+            releases[client.connection_pool] = client.connection_pool.release
+            client.connection_pool.release = noop
+            self.assertEqual(client.connection_pool.max_connections, 2)
+
         cache.set('a', 'a')
+        self.assertMaxConnection(cache, 1)
+
         cache.set('a', 'a')
+        self.assertMaxConnection(cache, 2)
 
         with self.assertRaises(redis.ConnectionError):
             cache.set('a', 'a')
 
-        cache._client.connection_pool.release = release
-        cache._client.connection_pool.max_connections = 2**31
+        self.assertMaxConnection(cache, 2)
 
-    def test_ttl_set_expiry(self):
-        self.cache.set('a', 'a', 10)
-        ttl = self.cache.ttl('a')
-        self.assertAlmostEqual(ttl, 10)
-
-    def test_ttl_no_expiry(self):
-        self.cache.set('a', 'a', timeout=None)
-        ttl = self.cache.ttl('a')
-        self.assertTrue(ttl is None)
-
-    def test_ttl_past_expiry(self):
-        self.cache.set('a', 'a', timeout=1)
-        ttl = self.cache.ttl('a')
-        self.assertAlmostEqual(ttl, 1)
-
-        time.sleep(2)
-
-        ttl = self.cache.ttl('a')
-        self.assertEqual(ttl, 0)
-
-    def test_non_existent_key(self):
-        """ Non-existent keys are semantically the same as keys that have
-        expired.
-        """
-        ttl = self.cache.ttl('does_not_exist')
-        self.assertEqual(ttl, 0)
+        for client in cache.clients.itervalues():
+            client.connection_pool.release = releases[client.connection_pool]
+            client.connection_pool.max_connections = 2 ** 31
 
     def test_has_key_with_no_key(self):
         self.assertFalse(self.cache.has_key('does_not_exist'))
@@ -427,7 +443,30 @@ class RedisCacheTests(TestCase):
         self.cache.set('a', 'a')
         self.assertTrue(self.cache.has_key('a'))
 
+    def test_ttl_set_expiry(self):
+        self.cache.set('a', 'a', 10)
+        ttl = self.cache.ttl('a')
+        self.assertAlmostEqual(ttl, 10)
 
-if __name__ == '__main__':
-    import unittest
-    unittest.main()
+    @unittest.skipIf(DEFAULT_TIMEOUT is None, "Version of django doesn't support indefinite timeouts.")
+    def test_ttl_no_expiry(self):
+        self.cache.set('a', 'a', timeout=None)
+        ttl = self.cache.ttl('a')
+        self.assertIsNone(ttl)
+
+    def test_ttl_past_expiry(self):
+        self.cache.set('a', 'a', timeout=1)
+        ttl = self.cache.ttl('a')
+        self.assertAlmostEqual(ttl, 1)
+
+        time.sleep(1.1)
+
+        ttl = self.cache.ttl('a')
+        self.assertEqual(ttl, 0)
+
+    def test_non_existent_key(self):
+        """Non-existent keys are semantically the same as keys that have
+        expired.
+        """
+        ttl = self.cache.ttl('does_not_exist')
+        self.assertEqual(ttl, 0)
