@@ -151,3 +151,11 @@ class RedisCache(BaseRedisCache):
         Reinsert cache entries using the current pickle protocol version.
         """
         self._reinsert_keys(self.client)
+
+    def persist(self, key, version=None):
+        key = self.make_key(key, version=version)
+        self._persist(self.client, key, version)
+
+    def expire(self, key, timeout, version=None):
+        key = self.make_key(key, version=version)
+        self._expire(self.client, key, timeout, version)
