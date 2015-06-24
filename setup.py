@@ -6,7 +6,7 @@ setup(
     author="Sean Bleier",
     author_email="sebleier@gmail.com",
     version="1.0.0",
-    packages=["redis_cache"],
+    packages=["redis_cache", "redis_cache.backends"],
     description="Redis Cache Backend for Django",
     install_requires=['redis>=2.4.5'],
     classifiers=[
