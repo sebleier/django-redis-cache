@@ -38,18 +38,7 @@ class ShardedRedisCache(BaseRedisCache):
             if cache is None:
                 self._master_client = None
             else:
-                self._master_client = None
-                try:
-                    host, port = cache.split(":")
-                except ValueError:
-                    raise ImproperlyConfigured("MASTER_CACHE must be in the form <host>:<port>")
-                for client in self.clients:
-                    connection_kwargs = client.connection_pool.connection_kwargs
-                    if connection_kwargs['host'] == host and connection_kwargs['port'] == int(port):
-                        self._master_client = client
-                        break
-                if self._master_client is None:
-                    raise ImproperlyConfigured("%s is not in the list of available redis-server instances." % cache)
+                self._master_client = self.create_client(cache)
         return self._master_client
 
     def get_client(self, key, for_write=False):

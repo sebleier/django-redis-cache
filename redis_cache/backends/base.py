@@ -33,66 +33,30 @@ class BaseRedisCache(BaseCache):
         self.params = params or {}
         self.options = params.get('OPTIONS', {})
 
+        self.db = self.get_db()
+        self.password = self.get_password()
+        self.parser_class = self.get_parser_class()
+        self.pickle_version = self.get_pickle_version()
+        self.connection_pool_class = self.get_connection_pool_class()
+        self.connection_pool_class_kwargs = self.get_connection_pool_class_kwargs()
+
     def __getstate__(self):
         return {'params': self.params, 'server': self.server}
 
     def __setstate__(self, state):
         self.__init__(**state)
 
-    def create_client(self, server):
-        kwargs = {
-            'db': self.db,
-            'password': self.password,
-        }
-        if '://' in server:
-            client = redis.Redis.from_url(
-                server,
-                parser_class=self.parser_class,
-                **kwargs
-            )
-            kwargs.update(
-                client.connection_pool.connection_kwargs,
-                unix_socket_path=client.connection_pool.connection_kwargs.get('path'),
-            )
-        else:
-            unix_socket_path = None
-            if ':' in server:
-                host, port = server.rsplit(':', 1)
-                try:
-                    port = int(port)
-                except (ValueError, TypeError):
-                    raise ImproperlyConfigured("Port value must be an integer")
-            else:
-                host, port = None, None
-                unix_socket_path = server
-
-            kwargs.update(host=host, port=port, unix_socket_path=unix_socket_path)
-            client = redis.Redis(**kwargs)
-
-        kwargs.update(
-            parser_class=self.parser_class,
-            connection_pool_class=self.connection_pool_class,
-            connection_pool_class_kwargs=self.connection_pool_class_kwargs,
-        )
-
-        connection_pool = pool.get_connection_pool(**kwargs)
-        client.connection_pool = connection_pool
-        return client
-
-    @cached_property
-    def db(self):
+    def get_db(self):
         _db = self.params.get('db', self.options.get('DB', 1))
         try:
             return int(_db)
         except (ValueError, TypeError):
             raise ImproperlyConfigured("db value must be an integer")
 
-    @cached_property
-    def password(self):
+    def get_password(self):
         return self.params.get('password', self.options.get('PASSWORD', None))
 
-    @cached_property
-    def parser_class(self):
+    def get_parser_class(self):
         cls = self.options.get('PARSER_CLASS', None)
         if cls is None:
             return DefaultParser
@@ -106,8 +70,7 @@ class BaseRedisCache(BaseCache):
             raise ImproperlyConfigured("Could not find module '%s'" % e)
         return parser_class
 
-    @cached_property
-    def pickle_version(self):
+    def get_pickle_version(self):
         """
         Get the pickle version from the settings and save it for future use
         """
@@ -117,8 +80,7 @@ class BaseRedisCache(BaseCache):
         except (ValueError, TypeError):
             raise ImproperlyConfigured("pickle version value must be an integer")
 
-    @cached_property
-    def connection_pool_class(self):
+    def get_connection_pool_class(self):
         pool_class = self.options.get('CONNECTION_POOL_CLASS', 'redis.ConnectionPool')
         module_name, class_name = pool_class.rsplit('.', 1)
         module = import_module(module_name)
@@ -127,30 +89,53 @@ class BaseRedisCache(BaseCache):
         except AttributeError:
             raise ImportError('cannot import name %s' % class_name)
 
-    @cached_property
-    def connection_pool_class_kwargs(self):
+    def get_connection_pool_class_kwargs(self):
         return self.options.get('CONNECTION_POOL_CLASS_KWARGS', {})
 
-    @cached_property
-    def master_client(self):
-        """
-        Get the write server:port of the master cache
-        """
-        cache = self.options.get('MASTER_CACHE', None)
-        if cache is None:
-            self._master_client = None
+    def create_client(self, server):
+        kwargs = {
+            'db': self.db,
+            'password': self.password,
+        }
+        if '://' in server:
+            client = redis.Redis.from_url(
+                server,
+                parser_class=self.parser_class,
+                **kwargs
+            )
+            unix_socket_path = client.connection_pool.connection_kwargs.get('path')
+            kwargs.update(
+                client.connection_pool.connection_kwargs,
+                unix_socket_path=unix_socket_path,
+            )
         else:
-            self._master_client = None
-            try:
-                host, port = cache.split(":")
-            except ValueError:
-                raise ImproperlyConfigured("MASTER_CACHE must be in the form <host>:<port>")
-            for client in self.clients.itervalues():
-                connection_kwargs = client.connection_pool.connection_kwargs
-                if connection_kwargs['host'] == host and connection_kwargs['port'] == int(port):
-                    return client
-            if self._master_client is None:
-                raise ImproperlyConfigured("%s is not in the list of available redis-server instances." % cache)
+            unix_socket_path = None
+            if ':' in server:
+                host, port = server.rsplit(':', 1)
+                try:
+                    port = int(port)
+                except (ValueError, TypeError):
+                    raise ImproperlyConfigured("Port value must be an integer")
+            else:
+                host, port = None, None
+                unix_socket_path = server
+
+            kwargs.update(
+                host=host,
+                port=port,
+                unix_socket_path=unix_socket_path,
+            )
+            client = redis.Redis(**kwargs)
+
+        kwargs.update(
+            parser_class=self.parser_class,
+            connection_pool_class=self.connection_pool_class,
+            connection_pool_class_kwargs=self.connection_pool_class_kwargs,
+        )
+
+        connection_pool = pool.get_connection_pool(client, **kwargs)
+        client.connection_pool = connection_pool
+        return client
 
     def serialize(self, value):
         return pickle.dumps(value, self.pickle_version)

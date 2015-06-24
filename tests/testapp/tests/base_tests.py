@@ -26,8 +26,7 @@ class C:
         return 24
 
 
-class BaseRedisTestCase(object):
-
+class SetupMixin(object):
     def setUp(self):
         # use DB 16 for testing and hope there isn't any important data :->
         self.reset_pool()
@@ -42,12 +41,13 @@ class BaseRedisTestCase(object):
         self.cache.clear()
 
     def reset_pool(self):
-        if hasattr(self, 'cache'):
-            for client in self.cache.clients.itervalues():
-                client.connection_pool.disconnect()
+        pool.reset()
 
     def get_cache(self, backend=None):
         return get_cache(backend or 'default')
+
+
+class BaseRedisTestCase(SetupMixin):
 
     def test_simple(self):
         # Simple cache set/get works

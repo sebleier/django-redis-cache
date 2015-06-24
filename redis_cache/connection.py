@@ -4,10 +4,24 @@ from redis.connection import UnixDomainSocketConnection, Connection
 class CacheConnectionPool(object):
 
     def __init__(self):
+        self._clients = {}
+        self._connection_pools = {}
+
+    def __contains__(self, server):
+        return server in self._clients
+
+    def __getitem__(self, server):
+        return self._clients.get(server, None)
+
+    def reset(self):
+        for pool in self._connection_pools.itervalues():
+            pool.disconnect()
+        self._clients = {}
         self._connection_pools = {}
 
     def get_connection_pool(
         self,
+        client,
         host='127.0.0.1',
         port=6379,
         db=1,
@@ -18,10 +32,9 @@ class CacheConnectionPool(object):
         connection_pool_class_kwargs=None,
         **kwargs
     ):
+        connection_identifier = (host, port, db, unix_socket_path)
 
-        connection_identifier = (
-            host, port, db, unix_socket_path
-        )
+        self._clients[connection_identifier] = client
 
         pool = self._connection_pools.get(connection_identifier)
 
@@ -46,10 +59,11 @@ class CacheConnectionPool(object):
             else:
                 kwargs['path'] = unix_socket_path
 
-            self._connection_pools[connection_identifier] = connection_pool_class(**kwargs)
-            self._connection_pools[connection_identifier].connection_identifier = (
-                connection_identifier
-            )
-        return self._connection_pools[connection_identifier]
+            pool = connection_pool_class(**kwargs)
+
+            self._connection_pools[connection_identifier] = pool
+            pool.connection_identifier = connection_identifier
+
+        return pool
 
 pool = CacheConnectionPool()

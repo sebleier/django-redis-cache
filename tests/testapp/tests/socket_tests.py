@@ -110,4 +110,3 @@ class MultipleHiredisTestCase(MultiServerTests, SocketTestCase):
 )
 class MultiplePythonParserTestCase(MultiServerTests, SocketTestCase):
     pass
-

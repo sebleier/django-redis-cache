@@ -16,10 +16,14 @@ class MultiServerTests(object):
 
     def test_key_distribution(self):
         n = 10000
+        self.cache.set('a', 'a')
         for i in xrange(n):
             self.cache.set(i, i)
-        keys = [len(client.keys('*')) for client in self.cache.clients.itervalues()]
-        self.assertTrue(((stddev(keys) / n) * 100.0) < 10)
+        keys = [
+            len(client.keys('*'))
+            for client in self.cache.clients.itervalues()
+        ]
+        self.assertLess(((stddev(keys) / n) * 100.0), 10)
 
     def test_removing_nodes(self):
         c1, c2, c3 = self.cache.clients.keys()

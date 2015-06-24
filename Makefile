@@ -17,6 +17,7 @@ $(VENV_ACTIVATE): requirements*.txt
 install_requirements: requirements*.txt
 	$(WITH_VENV) pip install --no-deps -r requirements.txt
 	$(WITH_VENV) pip install --no-deps -r requirements-dev.txt
+	$(WITH_VENV) pip install -r requirements-local.txt
 	$(WITH_VENV) pip install Django==$(DJANGO_VERSION)
 
 .PHONY: venv
@@ -46,6 +47,22 @@ redis_servers:
     		--port 0 \
     		--unixsocket /tmp/redis`echo $$i`.sock \
     		--unixsocketperm 755 ; \
+	    done
+
+	    ./redis/src/redis-server \
+			--pidfile /tmp/redis7.pid \
+			--requirepass yadayada \
+			--daemonize yes \
+			--port 6387 ;
+
+	for i in 8 9; do \
+		./redis/src/redis-server \
+            --pidfile /tmp/redis`echo $$i`.pid \
+            --requirepass yadayada \
+            --daemonize yes \
+            --masterauth yadayada \
+            --slaveof 127.0.0.1 6387 \
+            --port `echo 638$$i` ; \
     	done
 
 .PHONY: clean
@@ -66,7 +83,7 @@ teardown:
 .PHONY: test
 test: venv install_requirements redis_servers
 	$(WITH_VENV) PYTHONPATH=$(PYTHONPATH): django-admin.py test --settings=tests.settings -s
-	for i in 1 2 3 4 5 6; do kill `cat /tmp/redis$$i.pid`; done;
+	for i in 1 2 3 4 5 6 7 8 9; do kill `cat /tmp/redis$$i.pid`; done;
 
 .PHONY: shell
 shell: venv

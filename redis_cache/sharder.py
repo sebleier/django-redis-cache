@@ -2,7 +2,6 @@ from bisect import insort, bisect
 from hashlib import md5
 from math import log
 import sys
-#from django.utils.encoding import smart_str
 
 
 DIGITS = int(log(sys.maxint) / log(16))
@@ -15,6 +14,7 @@ def make_hash(s):
 class Node(object):
     def __init__(self, node, i):
         self._node = node
+        self._i = i
         self._position = make_hash("%d:%s" % (i, str(self._node)))
 
     def __cmp__(self, other):
