@@ -474,8 +474,7 @@ class BaseRedisTestCase(SetupMixin):
     def test_persist_expire_to_persist(self):
         self.cache.set('a', 'a', timeout=10)
         self.cache.persist('a')
-        ttl = self.cache.ttl('a')
-        self.assertEqual(ttl, None)
+        self.assertIsNone(self.cache.ttl('a'))
 
     def test_expire_no_expiry_to_expire(self):
         self.cache.set('a', 'a', timeout=None)
