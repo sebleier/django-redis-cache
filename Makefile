@@ -17,7 +17,7 @@ $(VENV_ACTIVATE): requirements*.txt
 install_requirements: requirements*.txt
 	$(WITH_VENV) pip install --no-deps -r requirements.txt
 	$(WITH_VENV) pip install --no-deps -r requirements-dev.txt
-	$(WITH_VENV) pip install -r requirements-local.txt
+	$(WITH_VENV) $(test -f requirements-local.txt && pip install -r requirements-local.txt)
 	$(WITH_VENV) pip install Django==$(DJANGO_VERSION)
 
 .PHONY: venv
