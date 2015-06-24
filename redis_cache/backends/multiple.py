@@ -211,3 +211,13 @@ class ShardedRedisCache(BaseRedisCache):
         for client in self.clients.itervalues():
             self._reinsert_keys(client)
         print
+
+    def persist(self, key, version=None):
+        client = self.get_client(key, for_write=True)
+        key = self.make_key(key, version=version)
+        self._persist(client, key, version)
+
+    def expire(self, key, timeout, version=None):
+        client = self.get_client(key, for_write=True)
+        key = self.make_key(key, version=version)
+        self._expire(client, key, timeout, version)

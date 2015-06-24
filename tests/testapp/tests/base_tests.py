@@ -470,3 +470,27 @@ class BaseRedisTestCase(SetupMixin):
         """
         ttl = self.cache.ttl('does_not_exist')
         self.assertEqual(ttl, 0)
+
+    def test_persist_expire_to_persist(self):
+        self.cache.set('a', 'a', timeout=10)
+        self.cache.persist('a')
+        ttl = self.cache.ttl('a')
+        self.assertEqual(ttl, None)
+
+    def test_expire_no_expiry_to_expire(self):
+        self.cache.set('a', 'a', timeout=None)
+        self.cache.expire('a', 10)
+        ttl = self.cache.ttl('a')
+        self.assertAlmostEqual(ttl, 10)
+
+    def test_expire_less(self):
+        self.cache.set('a', 'a', timeout=20)
+        self.cache.expire('a', 10)
+        ttl = self.cache.ttl('a')
+        self.assertAlmostEqual(ttl, 10)
+
+    def test_expire_more(self):
+        self.cache.set('a', 'a', timeout=10)
+        self.cache.expire('a', 20)
+        ttl = self.cache.ttl('a')
+        self.assertAlmostEqual(ttl, 20)

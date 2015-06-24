@@ -403,3 +403,26 @@ class BaseRedisCache(BaseCache):
         Reinsert cache entries using the current pickle protocol version.
         """
         raise NotImplementedError
+
+    def _persist(self, client, key, version=None):
+        if client.exists(key):
+            client.persist(key)
+
+    def persist(self, key):
+        """
+        Remove the timeout on a key.  Equivalent to setting a timeout
+        of None in a set command.
+        """
+        raise NotImplementedError
+
+    def _expire(self, client, key, timeout, version=None):
+        if client.exists(key):
+            client.expire(key, timeout)
+
+    def expire(self, key, timeout):
+        """
+        Set the expire time on a key
+
+        Will raise an exception if the key does not exist
+        """
+        raise NotImplementedError
