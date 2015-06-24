@@ -30,6 +30,8 @@ Changelog
 * Ability to select pickle protocol version.
 * Support for Master-Slave setup
 * Thundering herd protection
+* Add expiration to key using `expire` command.
+* Add persistence to key using `persist` command.
 
 
 0.13.0
