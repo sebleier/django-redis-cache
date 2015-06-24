@@ -10,7 +10,7 @@ default:
 	python setup.py check build
 
 $(VENV_ACTIVATE): requirements*.txt
-	test -f $@ || virtualenv --python=python2.7 --system-site-packages $(VENV_DIR)
+	test -f $@ || virtualenv --system-site-packages $(VENV_DIR)
 	touch $@
 
 .PHONY: install_requirements
