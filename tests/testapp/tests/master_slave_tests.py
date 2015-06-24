@@ -1,3 +1,5 @@
+import time
+
 from django.test import TestCase
 try:
     from django.test import override_settings
@@ -48,6 +50,7 @@ class MasterSlaveTestCase(SetupMixin, TestCase):
     def test_set(self):
         cache = self.get_cache()
         cache.set('a', 'a')
+        time.sleep(.5)
         for client in self.cache.clients.itervalues():
             key = cache.make_key('a')
             self.assertIsNotNone(client.get(key))
@@ -65,6 +68,7 @@ class MasterSlaveTestCase(SetupMixin, TestCase):
         cache = self.get_cache()
         cache.set('a', 0)
         cache.incr('a')
+        time.sleep(.5)
         key = cache.make_key('a')
         for client in self.cache.clients.itervalues():
             self.assertEqual(client.get(key), '1')
