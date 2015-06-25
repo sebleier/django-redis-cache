@@ -2,6 +2,7 @@ try:
     import cPickle as pickle
 except ImportError:
     import pickle
+import random
 
 from redis_cache.backends.base import BaseRedisCache
 from redis_cache.compat import bytes_type, DEFAULT_TIMEOUT
@@ -15,75 +16,41 @@ class RedisCache(BaseRedisCache):
         """
         super(RedisCache, self).__init__(server, params)
 
-        if not isinstance(server, bytes_type):
-            self._server, = server
+        for server in self.servers:
+            client = self.create_client(server)
+            self.clients[client.connection_pool.connection_identifier] = client
 
-        self.client = self.create_client(server)
-        self.clients = {
-            self.client.connection_pool.connection_identifier: self.client
-        }
+        self.client_list = self.clients.values()
+        self.master_client = self.get_master_client()
 
-    def get_client(self, *args):
-        return self.client
+    def get_client(self, key, write=False):
+        if write and self.master_client is not None:
+            return self.master_client
+        return random.choice(self.client_list)
 
     ####################
     # Django cache api #
     ####################
 
-    def add(self, key, value, timeout=None, version=None):
-        """
-        Add a value to the cache, failing if the key already exists.
-
-        Returns ``True`` if the object was added, ``False`` if not.
-        """
-        key = self.make_key(key, version=version)
-        return self._add(self.client, key, value, timeout)
-
-    def get(self, key, default=None, version=None):
-        """
-        Retrieve a value from the cache.
-
-        Returns unpickled value if key is found, the default if not.
-        """
-        key = self.make_key(key, version=version)
-        return self._get(self.client, key, default)
-
-    def set(self, key, value, timeout=DEFAULT_TIMEOUT, version=None, client=None):
-        """
-        Persist a value to the cache, and set an optional expiration time.
-        """
-        key = self.make_key(key, version=version)
-        return self._set(key, value, timeout, client=self.client)
-
-    def delete(self, key, version=None):
-        """
-        Remove a key from the cache.
-        """
-        key = self.make_key(key, version=version)
-        return self._delete(self.client, key)
-
     def delete_many(self, keys, version=None):
-        """
-        Remove multiple keys at once.
-        """
+        """Remove multiple keys at once."""
         versioned_keys = self.make_keys(keys, version=version)
-        self._delete_many(self.client, versioned_keys)
+        self._delete_many(self.master_client, versioned_keys)
 
     def clear(self, version=None):
-        """
-        Flush cache keys.
+        """Flush cache keys.
 
         If version is specified, all keys belonging the version's key
         namespace will be deleted.  Otherwise, all keys will be deleted.
         """
         if version is None:
-            self._clear(self.client)
+            self._clear(self.master_client)
         else:
             self.delete_pattern('*', version=version)
 
     def get_many(self, keys, version=None):
         versioned_keys = self.make_keys(keys, version=version)
-        return self._get_many(self.client, keys, versioned_keys=versioned_keys)
+        return self._get_many(self.master_client, keys, versioned_keys=versioned_keys)
 
     def set_many(self, data, timeout=None, version=None):
         """
@@ -97,21 +64,14 @@ class RedisCache(BaseRedisCache):
         if timeout is None:
             new_data = {}
             for key in versioned_keys:
-                new_data[key] = data[key._original_key]
-            return self._set_many(self.client, new_data)
+                new_data[key] = self.prep_value(data[key._original_key])
+            return self._set_many(self.master_client, new_data)
 
-        pipeline = self.client.pipeline()
+        pipeline = self.master_client.pipeline()
         for key in versioned_keys:
-            self._set(key, data[key._original_key], timeout, client=pipeline)
+            value = self.prep_value(data[key._original_key])
+            self._set(pipeline, key, value, timeout)
         pipeline.execute()
-
-    def incr(self, key, delta=1, version=None):
-        """
-        Add delta to value in the cache. If the key does not exist, raise a
-        ValueError exception.
-        """
-        key = self.make_key(key, version=version)
-        return self._incr(self.client, key, delta=delta)
 
     def incr_version(self, key, delta=1, version=None):
         """
@@ -125,37 +85,18 @@ class RedisCache(BaseRedisCache):
         old = self.make_key(key, version)
         new = self.make_key(key, version=version + delta)
 
-        return self._incr_version(self.client, old, new, delta, version)
+        return self._incr_version(self.master_client, old, new, delta, version)
 
     #####################
     # Extra api methods #
     #####################
 
-    def has_key(self, key, version=None):
-        return self._has_key(self.client, key, version)
-
-    def ttl(self, key, version=None):
-        key = self.make_key(key, version=version)
-        return self._ttl(self.client, key)
-
     def delete_pattern(self, pattern, version=None):
         pattern = self.make_key(pattern, version=version)
-        self._delete_pattern(self.client, pattern)
-
-    def get_or_set(self, key, func, timeout=None, version=None):
-        key = self.make_key(key, version=version)
-        return self._get_or_set(self.client, key, func, timeout)
+        self._delete_pattern(self.master_client, pattern)
 
     def reinsert_keys(self):
         """
         Reinsert cache entries using the current pickle protocol version.
         """
-        self._reinsert_keys(self.client)
-
-    def persist(self, key, version=None):
-        key = self.make_key(key, version=version)
-        self._persist(self.client, key, version)
-
-    def expire(self, key, timeout, version=None):
-        key = self.make_key(key, version=version)
-        self._expire(self.client, key, timeout, version)
+        self._reinsert_keys(self.master_client)

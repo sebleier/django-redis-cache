@@ -4,7 +4,7 @@ from django.utils import importlib
 from django.utils.functional import cached_property
 from django.utils.importlib import import_module
 
-from redis_cache.compat import smart_bytes, DEFAULT_TIMEOUT
+from redis_cache.compat import bytes_type, smart_bytes, DEFAULT_TIMEOUT
 
 try:
     import cPickle as pickle
@@ -22,6 +22,26 @@ from redis_cache.connection import pool
 from redis_cache.utils import CacheKey
 
 
+from functools import wraps
+
+
+def get_client(write=False):
+
+    def wrapper(method):
+
+        @wraps(method)
+        def wrapped(self, key, *args, **kwargs):
+            version = kwargs.pop('version', None)
+            client = self.get_client(key, write=write)
+            key = self.make_key(key, version=version)
+
+            return method(self, client, key, *args, **kwargs)
+
+        return wrapped
+
+    return wrapper
+
+
 class BaseRedisCache(BaseCache):
 
     def __init__(self, server, params):
@@ -30,21 +50,40 @@ class BaseRedisCache(BaseCache):
         """
         super(BaseRedisCache, self).__init__(params)
         self.server = server
+        self.servers = self.get_servers(server)
         self.params = params or {}
         self.options = params.get('OPTIONS', {})
+        self.clients = {}
+        self.client_list = []
 
         self.db = self.get_db()
         self.password = self.get_password()
         self.parser_class = self.get_parser_class()
         self.pickle_version = self.get_pickle_version()
         self.connection_pool_class = self.get_connection_pool_class()
-        self.connection_pool_class_kwargs = self.get_connection_pool_class_kwargs()
+        self.connection_pool_class_kwargs = (
+            self.get_connection_pool_class_kwargs()
+        )
 
     def __getstate__(self):
         return {'params': self.params, 'server': self.server}
 
     def __setstate__(self, state):
         self.__init__(**state)
+
+    def get_servers(self, server):
+        """returns a list of servers given the server argument passed in
+        from Django.
+        """
+        if isinstance(server, bytes_type):
+            servers = server.split(',')
+        elif hasattr(server, '__iter__'):
+            servers = server
+        else:
+            raise ImproperlyConfigured(
+                '"server" must be an iterable or string'
+            )
+        return servers
 
     def get_db(self):
         _db = self.params.get('db', self.options.get('DB', 1))
@@ -91,6 +130,13 @@ class BaseRedisCache(BaseCache):
 
     def get_connection_pool_class_kwargs(self):
         return self.options.get('CONNECTION_POOL_CLASS_KWARGS', {})
+
+    def get_master_client(self):
+        """
+        Get the write server:port of the master cache
+        """
+        cache = self.options.get('MASTER_CACHE', None)
+        return self.client_list[0] if cache is None else self.create_client(cache)
 
     def create_client(self, server):
         kwargs = {
@@ -172,33 +218,27 @@ class BaseRedisCache(BaseCache):
     # Django cache api #
     ####################
 
-    def _add(self, client, key, value, timeout):
-        return self._set(key, value, timeout, client, _add_only=True)
-
-    def add(self, key, value, timeout=None, version=None):
-        """
-        Add a value to the cache, failing if the key already exists.
+    @get_client(write=True)
+    def add(self, client, key, value, timeout=None):
+        """Add a value to the cache, failing if the key already exists.
 
         Returns ``True`` if the object was added, ``False`` if not.
         """
-        raise NotImplementedError
+        return self._set(client, key, self.prep_value(value), timeout, _add_only=True)
 
-    def _get(self, client, key, default=None):
+    @get_client()
+    def get(self, client, key, default=None):
+        """Retrieve a value from the cache.
+
+        Returns deserialized value if key is found, the default if not.
+        """
         value = client.get(key)
         if value is None:
             return default
         value = self.get_value(value)
         return value
 
-    def get(self, key, default=None, version=None):
-        """
-        Retrieve a value from the cache.
-
-        Returns unpickled value if key is found, the default if not.
-        """
-        raise NotImplementedError
-
-    def __set(self, client, key, value, timeout, _add_only=False):
+    def _set(self, client, key, value, timeout, _add_only=False):
         if timeout is None or timeout == 0:
             if _add_only:
                 return client.setnx(key, value)
@@ -213,36 +253,24 @@ class BaseRedisCache(BaseCache):
         else:
             return False
 
-    def _set(self, key, value, timeout=DEFAULT_TIMEOUT, client=None, _add_only=False):
-        """
-        Persist a value to the cache, and set an optional expiration time.
+    @get_client(write=True)
+    def set(self, client, key, value, timeout=DEFAULT_TIMEOUT):
+        """Persist a value to the cache, and set an optional expiration time.
         """
         if timeout is DEFAULT_TIMEOUT:
             timeout = self.default_timeout
+
         if timeout is not None:
             timeout = int(timeout)
-        # If ``value`` is not an int, then pickle it
-        if not isinstance(value, int) or isinstance(value, bool):
-            result = self.__set(client, key, pickle.dumps(value), timeout, _add_only)
-        else:
-            result = self.__set(client, key, value, timeout, _add_only)
-        # result is a boolean
+
+        result = self._set(client, key, self.prep_value(value), timeout, _add_only=False)
+
         return result
 
-    def set(self, key, value, timeout=None, version=None, client=None):
-        """
-        Persist a value to the cache, and set an optional expiration time.
-        """
-        raise NotImplementedError()
-
-    def _delete(self, client, key):
+    @get_client(write=True)
+    def delete(self, client, key):
+        """Remove a key from the cache."""
         return client.delete(key)
-
-    def delete(self, key, version=None):
-        """
-        Remove a key from the cache.
-        """
-        raise NotImplementedError
 
     def _delete_many(self, client, keys):
         return client.delete(*keys)
@@ -257,8 +285,7 @@ class BaseRedisCache(BaseCache):
         return client.flushdb()
 
     def clear(self, version=None):
-        """
-        Flush cache keys.
+        """Flush cache keys.
 
         If version is specified, all keys belonging the version's key
         namespace will be deleted.  Otherwise, all keys will be deleted.
@@ -266,9 +293,6 @@ class BaseRedisCache(BaseCache):
         raise NotImplementedError
 
     def _get_many(self, client, original_keys, versioned_keys):
-        """
-        Retrieve many keys.
-        """
         recovered_data = {}
         map_keys = dict(zip(versioned_keys, original_keys))
 
@@ -282,18 +306,14 @@ class BaseRedisCache(BaseCache):
         return recovered_data
 
     def get_many(self, keys, version=None):
+        """Retrieve many keys."""
         raise NotImplementedError
 
     def _set_many(self, client, data):
-        new_data = {}
-        for key, value in data.items():
-            new_data[key] = self.prep_value(value)
-
-        return client.mset(new_data)
+        return client.mset(data)
 
     def set_many(self, data, timeout=None, version=None):
-        """
-        Set a bunch of values in the cache at once from a dict of key/value
+        """Set a bunch of values in the cache at once from a dict of key/value
         pairs. This is much more efficient than calling set() multiple times.
 
         If timeout is given, that timeout will be used for the key; otherwise
@@ -301,37 +321,32 @@ class BaseRedisCache(BaseCache):
         """
         raise NotImplementedError
 
-    def _incr(self, client, key, delta=1):
+    @get_client(write=True)
+    def incr(self, client, key, delta=1):
+        """Add delta to value in the cache. If the key does not exist, raise a
+        `ValueError` exception.
+        """
         exists = client.exists(key)
         if not exists:
             raise ValueError("Key '%s' not found" % key)
         try:
             value = client.incr(key, delta)
         except redis.ResponseError:
-            value = self._get(client, key) + delta
-            self._set(client, key, value, timeout=None)
+            key = key._original_key
+            value = self.get(key) + delta
+            self.set(key, value, timeout=None)
         return value
-
-    def incr(self, key, delta=1, version=None):
-        """
-        Add delta to value in the cache. If the key does not exist, raise a
-        ValueError exception.
-        """
-        raise NotImplementedError
 
     def _incr_version(self, client, old, new, delta, version):
         try:
             client.rename(old, new)
         except redis.ResponseError:
             raise ValueError("Key '%s' not found" % old._original_key)
-
         return version + delta
 
     def incr_version(self, key, delta=1, version=None):
-        """
-        Adds delta to the cache version for the supplied key. Returns the
+        """Adds delta to the cache version for the supplied key. Returns the
         new version.
-
         """
         raise NotImplementedError
 
@@ -339,27 +354,21 @@ class BaseRedisCache(BaseCache):
     # Extra api methods #
     #####################
 
-    def _has_key(self, client, key, version=None):
+    @get_client()
+    def has_key(self, client, key):
         """Returns True if the key is in the cache and has not expired."""
-        key = self.make_key(key, version=version)
         return client.exists(key)
 
-    def has_key(self, key, version=None):
-        raise NotImplementedError
-
-    def _ttl(self, client, key):
-        """
-        Returns the 'time-to-live' of a key.  If the key is not volitile, i.e.
-        it has not set expiration, then the value returned is None.  Otherwise,
-        the value is the number of seconds remaining.  If the key does not exist,
-        0 is returned.
+    @get_client()
+    def ttl(self, client, key):
+        """Returns the 'time-to-live' of a key.  If the key is not volitile,
+        i.e. it has not set expiration, then the value returned is None.
+        Otherwise, the value is the number of seconds remaining.  If the key
+        does not exist, 0 is returned.
         """
         if client.exists(key):
             return client.ttl(key)
         return 0
-
-    def ttl(self, key, version=None):
-        raise NotImplementedError
 
     def _delete_pattern(self, client, pattern):
         keys = client.keys(pattern)
@@ -369,25 +378,23 @@ class BaseRedisCache(BaseCache):
     def delete_pattern(self, pattern, version=None):
         raise NotImplementedError
 
-    def _get_or_set(self, client, key, func, timeout=None):
+    @get_client(write=True)
+    def get_or_set(self, client, key, func, timeout=None):
         if not callable(func):
-            raise Exception("func must be a callable")
+            raise Exception("Must pass in a callable")
 
         dogpile_lock_key = "_lock" + key._versioned_key
         dogpile_lock = client.get(dogpile_lock_key)
 
         if dogpile_lock is None:
-            self._set(dogpile_lock_key, 0, None, client)
+            self.set(dogpile_lock_key, 0, None)
             value = func()
-            self.__set(client, key, self.prep_value(value), None)
-            self.__set(client, dogpile_lock_key, 0, timeout)
+            self._set(client, key, self.prep_value(value), None)
+            self._set(client, dogpile_lock_key, 0, timeout)
         else:
-            value = self._get(client, key)
+            value = self.get(key._original_key)
 
         return value
-
-    def get_or_set(self, key, func, timeout=None, version=None):
-        raise NotImplementedError
 
     def _reinsert_keys(self, client):
         keys = client.keys('*')
@@ -404,25 +411,21 @@ class BaseRedisCache(BaseCache):
         """
         raise NotImplementedError
 
-    def _persist(self, client, key, version=None):
-        if client.exists(key):
-            client.persist(key)
+    @get_client(write=True)
+    def persist(self, client, key):
+        """Remove the timeout on a key.
 
-    def persist(self, key):
+        Equivalent to setting a timeout of None in a set command.
+
+        Returns True if successful and False if not.
         """
-        Remove the timeout on a key.  Equivalent to setting a timeout
-        of None in a set command.
-        """
-        raise NotImplementedError
+        return client.persist(key)
 
-    def _expire(self, client, key, timeout, version=None):
-        if client.exists(key):
-            client.expire(key, timeout)
-
-    def expire(self, key, timeout):
+    @get_client(write=True)
+    def expire(self, client, key, timeout):
         """
         Set the expire time on a key
 
-        Will raise an exception if the key does not exist
+        returns True if successful and False if not.
         """
-        raise NotImplementedError
+        return client.expire(key, timeout)
