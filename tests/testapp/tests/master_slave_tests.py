@@ -21,7 +21,7 @@ LOCATIONS = [
 
 @override_settings(CACHES={
     'default': {
-        'BACKEND': 'redis_cache.ShardedRedisCache',
+        'BACKEND': 'redis_cache.RedisCache',
         'LOCATION': LOCATIONS,
         'OPTIONS': {
             'DB': 1,
