@@ -3,8 +3,12 @@ from hashlib import md5
 from math import log
 import sys
 
+try:
+    maxint = sys.maxint
+except AttributeError:
+    maxint = sys.maxsize
 
-DIGITS = int(log(sys.maxint) / log(16))
+DIGITS = int(log(maxint) / log(16))
 
 
 def make_hash(s):
