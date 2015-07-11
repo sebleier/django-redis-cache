@@ -105,8 +105,8 @@ class BaseRedisCache(BaseCache):
             parser_class = getattr(mod, cls_name)
         except AttributeError:
             raise ImproperlyConfigured("Could not find parser class '%s'" % parser_class)
-        except ImportError, e:
-            raise ImproperlyConfigured("Could not find module '%s'" % e)
+        except ImportError as ex:
+            raise ImproperlyConfigured("Could not find module '%s'" % ex)
         return parser_class
 
     def get_pickle_version(self):

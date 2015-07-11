@@ -8,12 +8,21 @@ try:
 except ImportError:
     import pickle
 from django.core.cache import get_cache
+from django.core.exceptions import ImproperlyConfigured
+from django.test import TestCase
+try:
+    from django.test import override_settings
+except ImportError:
+    from django.test.utils import override_settings
 
 import redis
 
 from tests.testapp.models import Poll, expensive_calculation
 from redis_cache.cache import RedisCache, pool
 from redis_cache.compat import DEFAULT_TIMEOUT
+
+
+LOCATION = "127.0.0.1:6381"
 
 
 # functions/classes for complex data type tests
@@ -493,3 +502,28 @@ class BaseRedisTestCase(SetupMixin):
         self.cache.expire('a', 20)
         ttl = self.cache.ttl('a')
         self.assertAlmostEqual(ttl, 20)
+
+
+class ConfigurationTestCase(SetupMixin, TestCase):
+
+    @override_settings(
+        CACHES={
+            'default': {
+                'BACKEND': 'redis_cache.RedisCache',
+                'LOCATION': LOCATION,
+                'OPTIONS': {
+                    'DB': 15,
+                    'PASSWORD': 'yadayada',
+                    'PARSER_CLASS': 'path.to.unknown.class',
+                    'PICKLE_VERSION': 2,
+                    'CONNECTION_POOL_CLASS': 'redis.ConnectionPool',
+                    'CONNECTION_POOL_CLASS_KWARGS': {
+                        'max_connections': 2,
+                    }
+                },
+            },
+        }
+    )
+    def test_bad_parser_import(self):
+        with self.assertRaises(ImproperlyConfigured):
+            get_cache('default')
