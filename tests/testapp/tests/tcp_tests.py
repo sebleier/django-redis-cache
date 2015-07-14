@@ -24,6 +24,10 @@ class TCPTestCase(BaseRedisTestCase, TestCase):
     def test_default_initialization(self):
         self.reset_pool()
         self.cache = self.get_cache()
+        self.assertIn(
+            ('127.0.0.1', 6381, 15, None),
+            self.cache.clients,
+        )
         client = self.cache.clients[('127.0.0.1', 6381, 15, None)]
         connection_class = client.connection_pool.connection_class
         if connection_class is not UnixDomainSocketConnection:

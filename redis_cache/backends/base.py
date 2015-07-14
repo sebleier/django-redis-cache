@@ -1,10 +1,9 @@
 from django.core.cache.backends.base import BaseCache, InvalidCacheBackendError
 from django.core.exceptions import ImproperlyConfigured
 from django.utils import importlib
-from django.utils.functional import cached_property
 from django.utils.importlib import import_module
 
-from redis_cache.compat import bytes_type, smart_bytes, DEFAULT_TIMEOUT
+from redis_cache.compat import smart_bytes, DEFAULT_TIMEOUT
 
 try:
     import cPickle as pickle
@@ -14,12 +13,14 @@ except ImportError:
 try:
     import redis
 except ImportError:
-    raise InvalidCacheBackendError("Redis cache backend requires the 'redis-py' library")
+    raise InvalidCacheBackendError(
+        "Redis cache backend requires the 'redis-py' library"
+    )
 
 from redis.connection import DefaultParser
 
 from redis_cache.connection import pool
-from redis_cache.utils import CacheKey
+from redis_cache.utils import CacheKey, get_servers, parse_connection_kwargs
 
 
 from functools import wraps
@@ -34,7 +35,6 @@ def get_client(write=False):
             version = kwargs.pop('version', None)
             client = self.get_client(key, write=write)
             key = self.make_key(key, version=version)
-
             return method(self, client, key, *args, **kwargs)
 
         return wrapped
@@ -50,7 +50,7 @@ class BaseRedisCache(BaseCache):
         """
         super(BaseRedisCache, self).__init__(params)
         self.server = server
-        self.servers = self.get_servers(server)
+        self.servers = get_servers(server)
         self.params = params or {}
         self.options = params.get('OPTIONS', {})
         self.clients = {}
@@ -70,20 +70,6 @@ class BaseRedisCache(BaseCache):
 
     def __setstate__(self, state):
         self.__init__(**state)
-
-    def get_servers(self, server):
-        """returns a list of servers given the server argument passed in
-        from Django.
-        """
-        if isinstance(server, bytes_type):
-            servers = server.split(',')
-        elif hasattr(server, '__iter__'):
-            servers = server
-        else:
-            raise ImproperlyConfigured(
-                '"server" must be an iterable or string'
-            )
-        return servers
 
     def get_db(self):
         _db = self.params.get('db', self.options.get('DB', 1))
@@ -136,49 +122,29 @@ class BaseRedisCache(BaseCache):
         Get the write server:port of the master cache
         """
         cache = self.options.get('MASTER_CACHE', None)
-        return self.client_list[0] if cache is None else self.create_client(cache)
+        if cache is None:
+            return self.client_list[0]
+
+        kwargs = parse_connection_kwargs(cache, db=self.db)
+        return self.clients[(
+            kwargs['host'],
+            kwargs['port'],
+            kwargs['db'],
+            kwargs['unix_socket_path'],
+        )]
 
     def create_client(self, server):
-        kwargs = {
-            'db': self.db,
-            'password': self.password,
-        }
-        if '://' in server:
-            client = redis.Redis.from_url(
-                server,
-                parser_class=self.parser_class,
-                **kwargs
-            )
-            unix_socket_path = client.connection_pool.connection_kwargs.get('path')
-            kwargs.update(
-                client.connection_pool.connection_kwargs,
-                unix_socket_path=unix_socket_path,
-            )
-        else:
-            unix_socket_path = None
-            if ':' in server:
-                host, port = server.rsplit(':', 1)
-                try:
-                    port = int(port)
-                except (ValueError, TypeError):
-                    raise ImproperlyConfigured("Port value must be an integer")
-            else:
-                host, port = None, None
-                unix_socket_path = server
-
-            kwargs.update(
-                host=host,
-                port=port,
-                unix_socket_path=unix_socket_path,
-            )
-            client = redis.Redis(**kwargs)
-
+        kwargs = parse_connection_kwargs(
+            server,
+            db=self.db,
+            password=self.password,
+        )
+        client = redis.Redis(**kwargs)
         kwargs.update(
             parser_class=self.parser_class,
             connection_pool_class=self.connection_pool_class,
             connection_pool_class_kwargs=self.connection_pool_class_kwargs,
         )
-
         connection_pool = pool.get_connection_pool(client, **kwargs)
         client.connection_pool = connection_pool
         return client

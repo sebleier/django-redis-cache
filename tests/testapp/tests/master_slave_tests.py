@@ -50,15 +50,15 @@ class MasterSlaveTestCase(SetupMixin, TestCase):
     def test_set(self):
         cache = self.get_cache()
         cache.set('a', 'a')
-        time.sleep(.5)
-        for client in self.cache.clients.itervalues():
+        time.sleep(.1)
+        for client in self.cache.clients.values():
             key = cache.make_key('a')
             self.assertIsNotNone(client.get(key))
 
     def test_set_many(self):
         cache = self.get_cache()
         cache.set_many({'a': 'a', 'b': 'b'})
-        for client in self.cache.clients.itervalues():
+        for client in self.cache.clients.values():
             self.assertNotIn(None, client.mget([
                 cache.make_key('a'),
                 cache.make_key('b'),
@@ -68,24 +68,28 @@ class MasterSlaveTestCase(SetupMixin, TestCase):
         cache = self.get_cache()
         cache.set('a', 0)
         cache.incr('a')
-        time.sleep(.5)
+        time.sleep(.1)
         key = cache.make_key('a')
-        for client in self.cache.clients.itervalues():
+        for client in self.cache.clients.values():
             self.assertEqual(client.get(key), '1')
 
     def test_delete(self):
         cache = self.get_cache()
         cache.set('a', 'a')
+        time.sleep(.1)
         self.assertEqual(cache.get('a'), 'a')
         cache.delete('a')
+        time.sleep(.1)
         key = cache.make_key('a')
-        for client in self.cache.clients.itervalues():
+        for client in self.cache.clients.values():
             self.assertIsNone(client.get(key))
 
     def test_clear(self):
         cache = self.get_cache()
         cache.set('a', 'a')
+        time.sleep(.1)
         self.assertEqual(cache.get('a'), 'a')
         cache.clear()
-        for client in self.cache.clients.itervalues():
+        time.sleep(.1)
+        for client in self.cache.clients.values():
             self.assertEqual(len(client.keys('*')), 0)

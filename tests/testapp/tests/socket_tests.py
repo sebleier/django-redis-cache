@@ -12,11 +12,11 @@ from redis_cache.cache import ImproperlyConfigured
 from redis.connection import UnixDomainSocketConnection
 
 
-LOCATION = "unix://:yadayada@/tmp/redis4.sock?db=15"
+LOCATION = "unix://:yadayada@/tmp/redis0.sock?db=15"
 LOCATIONS = [
-    "unix://:yadayada@/tmp/redis4.sock?db=15",
-    "unix://:yadayada@/tmp/redis5.sock?db=15",
-    "unix://:yadayada@/tmp/redis6.sock?db=15",
+    "unix://:yadayada@/tmp/redis0.sock?db=15",
+    "unix://:yadayada@/tmp/redis1.sock?db=15",
+    "unix://:yadayada@/tmp/redis2.sock?db=15",
 ]
 
 

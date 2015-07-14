@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 from hashlib import sha1
+import os
+import subprocess
 import time
 import unittest
 
@@ -7,6 +9,7 @@ try:
     import cPickle as pickle
 except ImportError:
     import pickle
+
 from django.core.cache import get_cache
 from django.core.exceptions import ImproperlyConfigured
 from django.test import TestCase
@@ -20,6 +23,10 @@ import redis
 from tests.testapp.models import Poll, expensive_calculation
 from redis_cache.cache import RedisCache, pool
 from redis_cache.compat import DEFAULT_TIMEOUT
+from redis_cache.utils import get_servers, parse_connection_kwargs
+
+
+REDIS_PASSWORD = 'yadayada'
 
 
 LOCATION = "127.0.0.1:6381"
@@ -35,15 +42,92 @@ class C:
         return 24
 
 
+def start_redis_servers(servers, db=None, master=None):
+    """Creates redis instances using specified locations from the settings.
+
+    Returns list of Popen objects
+    """
+    processes = []
+    devnull = open(os.devnull, 'w')
+    master_connection_kwargs = master and parse_connection_kwargs(
+        master,
+        db=db,
+        password=REDIS_PASSWORD
+    )
+
+    for i, server in enumerate(servers):
+        connection_kwargs = parse_connection_kwargs(
+            server,
+            db=db,
+            password=REDIS_PASSWORD,  # will be overridden if specified in `server`
+        )
+        parameters = dict(
+            port=connection_kwargs.get('port', 0),
+            requirepass=connection_kwargs['password'],
+        )
+        is_socket = server.startswith('unix://') or server.startswith('/')
+        if is_socket:
+            parameters.update(
+                port=0,
+                unixsocket='/tmp/redis{}.sock'.format(i),
+                unixsocketperm=755,
+            )
+        if master and not connection_kwargs == master_connection_kwargs:
+            parameters.update(
+                masterauth=master_connection_kwargs['password'],
+                slaveof="{host} {port}".format(
+                    host=master_connection_kwargs['host'],
+                    port=master_connection_kwargs['port'],
+                )
+            )
+
+        args = ['./redis/src/redis-server'] + [
+            "--{parameter} {value}".format(parameter=parameter, value=value)
+            for parameter, value in parameters.items()
+        ]
+        p = subprocess.Popen(args, stdout=devnull)
+        processes.append(p)
+
+    return processes
+
+
 class SetupMixin(object):
+    processes = None
+
+    @classmethod
+    def tearDownClass(cls):
+        for p in cls.processes:
+            p.kill()
+        cls.processes = None
+
+        # Give redis processes some time to shutdown
+        # time.sleep(.1)
+
     def setUp(self):
-        # use DB 16 for testing and hope there isn't any important data :->
+        if self.__class__.processes is None:
+            from django.conf import settings
+
+            cache_settings = settings.CACHES['default']
+            servers = get_servers(cache_settings['LOCATION'])
+            options = cache_settings.get('OPTIONS', {})
+            db = options.get('db', 0)
+            master = options.get('MASTER_CACHE')
+            self.__class__.processes = start_redis_servers(
+                servers,
+                db=db,
+                master=master
+            )
+
+            # Give redis processes some time to startup
+            time.sleep(.1)
+
         self.reset_pool()
         self.cache = self.get_cache()
 
     def tearDown(self):
-        # Sometimes it will be necessary to skip this method because we need to test default
-        # initialization and that may be using a different port than the test redis server.
+        # Sometimes it will be necessary to skip this method because we need to
+        # test default initialization and that may be using a different port
+        # than the test redis server.
         if hasattr(self, '_skip_tearDown') and self._skip_tearDown:
             self._skip_tearDown = False
             return
