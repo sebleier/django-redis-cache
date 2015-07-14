@@ -141,7 +141,9 @@ def parse_connection_kwargs(server, db=None, **kwargs):
             try:
                 port = int(port)
             except (ValueError, TypeError):
-                raise ImproperlyConfigured("Port value must be an integer")
+                raise ImproperlyConfigured(
+                    "{0} value must be an integer".format(repr(port))
+                )
         else:
             host, port = None, None
             unix_socket_path = server
