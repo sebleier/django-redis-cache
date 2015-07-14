@@ -5,8 +5,8 @@ DJANGO_VERSION?=1.7
 
 .PHONY: install_requirements
 install_requirements: requirements*.txt
-	pip install --no-deps -r requirements.txt
-	pip install --no-deps -r requirements-dev.txt
+	pip install -r requirements.txt
+	pip install -r requirements-dev.txt
 	pip install Django==$(DJANGO_VERSION)
 
 .PHONY: clean
