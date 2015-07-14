@@ -2,8 +2,14 @@
 from hashlib import sha1
 import os
 import subprocess
+import sys
 import time
-import unittest
+
+if sys.version_info < (2, 7):
+    import unittest2 as unittest
+else:
+    import unittest
+
 
 try:
     import cPickle as pickle

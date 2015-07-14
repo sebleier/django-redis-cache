@@ -123,5 +123,3 @@ class MultipleHiredisTestCase(MultiServerTests, TCPTestCase):
 )
 class MultiplePythonParserTestCase(MultiServerTests, TCPTestCase):
     pass
-
-
