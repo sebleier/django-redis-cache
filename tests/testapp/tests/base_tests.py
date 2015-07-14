@@ -75,7 +75,7 @@ def start_redis_servers(servers, db=None, master=None):
         if is_socket:
             parameters.update(
                 port=0,
-                unixsocket='/tmp/redis{}.sock'.format(i),
+                unixsocket='/tmp/redis{0}.sock'.format(i),
                 unixsocketperm=755,
             )
         if master and not connection_kwargs == master_connection_kwargs:
