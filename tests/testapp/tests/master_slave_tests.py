@@ -71,7 +71,7 @@ class MasterSlaveTestCase(SetupMixin, TestCase):
         time.sleep(.1)
         key = cache.make_key('a')
         for client in self.cache.clients.values():
-            self.assertEqual(client.get(key), '1')
+            self.assertEqual(int(client.get(key)), 1)
 
     def test_delete(self):
         cache = self.get_cache()

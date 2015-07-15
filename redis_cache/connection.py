@@ -14,7 +14,7 @@ class CacheConnectionPool(object):
         return self._clients.get(server, None)
 
     def reset(self):
-        for pool in self._connection_pools.itervalues():
+        for pool in self._connection_pools.values():
             pool.disconnect()
         self._clients = {}
         self._connection_pools = {}

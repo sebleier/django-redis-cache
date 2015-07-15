@@ -3,7 +3,7 @@ from collections import defaultdict
 from django.core.exceptions import ImproperlyConfigured
 
 from redis_cache.backends.base import BaseRedisCache
-from redis_cache.compat import DEFAULT_TIMEOUT
+from redis_cache.compat import DEFAULT_TIMEOUT, smart_text
 from redis_cache.sharder import HashRing
 
 
@@ -20,9 +20,8 @@ class ShardedRedisCache(BaseRedisCache):
 
         self.client_list = self.clients.values()
 
-
     def get_client(self, key, write=False):
-        node = self.sharder.get_node(unicode(key))
+        node = self.sharder.get_node(smart_text(key))
         return self.clients[node]
 
     def shard(self, keys, write=False, version=None):
@@ -31,7 +30,9 @@ class ShardedRedisCache(BaseRedisCache):
         """
         clients = defaultdict(list)
         for key in keys:
-            clients[self.get_client(key, write)].append(self.make_key(key, version))
+            clients[self.get_client(key, write)].append(
+                self.make_key(key, version)
+            )
         return clients
 
     ####################
@@ -54,7 +55,7 @@ class ShardedRedisCache(BaseRedisCache):
         namespace will be deleted.  Otherwise, all keys will be deleted.
         """
         if version is None:
-            for client in self.clients.itervalues():
+            for client in self.clients.values():
                 self._clear(client)
         else:
             self.delete_pattern('*', version=version)
@@ -64,7 +65,13 @@ class ShardedRedisCache(BaseRedisCache):
         clients = self.shard(keys, version=version)
         for client, versioned_keys in clients.items():
             original_keys = [key._original_key for key in versioned_keys]
-            data.update(self._get_many(client, original_keys, versioned_keys=versioned_keys))
+            data.update(
+                self._get_many(
+                    client,
+                    original_keys,
+                    versioned_keys=versioned_keys
+                )
+            )
         return data
 
     def set_many(self, data, timeout=None, version=None):
@@ -113,12 +120,12 @@ class ShardedRedisCache(BaseRedisCache):
 
     def delete_pattern(self, pattern, version=None):
         pattern = self.make_key(pattern, version=version)
-        for client in self.clients.itervalues():
+        for client in self.clients.values():
             self._delete_pattern(client, pattern)
 
     def reinsert_keys(self):
         """
         Reinsert cache entries using the current pickle protocol version.
         """
-        for client in self.clients.itervalues():
+        for client in self.clients.values():
             self._reinsert_keys(client)

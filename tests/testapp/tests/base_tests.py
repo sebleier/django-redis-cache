@@ -28,7 +28,7 @@ import redis
 
 from tests.testapp.models import Poll, expensive_calculation
 from redis_cache.cache import RedisCache, pool
-from redis_cache.compat import DEFAULT_TIMEOUT
+from redis_cache.compat import DEFAULT_TIMEOUT, smart_bytes
 from redis_cache.utils import get_servers, parse_connection_kwargs
 
 
@@ -60,7 +60,6 @@ def start_redis_servers(servers, db=None, master=None):
         db=db,
         password=REDIS_PASSWORD
     )
-
     for i, server in enumerate(servers):
         connection_kwargs = parse_connection_kwargs(
             server,
@@ -463,7 +462,7 @@ class BaseRedisTestCase(SetupMixin):
     def test_reinsert_keys(self):
         self.cache._pickle_version = 0
         for i in range(2000):
-            s = sha1(str(i)).hexdigest()
+            s = sha1(smart_bytes(i)).hexdigest()
             self.cache.set(s, self.cache)
         self.cache._pickle_version = -1
         self.cache.reinsert_keys()
@@ -504,7 +503,7 @@ class BaseRedisTestCase(SetupMixin):
         self.assertEqual(value, 42)
 
     def assertMaxConnection(self, cache, max_num):
-        for client in cache.clients.itervalues():
+        for client in cache.clients.values():
             self.assertLessEqual(client.connection_pool._created_connections, max_num)
 
     def test_max_connections(self):
@@ -515,7 +514,7 @@ class BaseRedisTestCase(SetupMixin):
             pass
 
         releases = {}
-        for client in cache.clients.itervalues():
+        for client in cache.clients.values():
             releases[client.connection_pool] = client.connection_pool.release
             client.connection_pool.release = noop
             self.assertEqual(client.connection_pool.max_connections, 2)
@@ -531,7 +530,7 @@ class BaseRedisTestCase(SetupMixin):
 
         self.assertMaxConnection(cache, 2)
 
-        for client in cache.clients.itervalues():
+        for client in cache.clients.values():
             client.connection_pool.release = releases[client.connection_pool]
             client.connection_pool.max_connections = 2 ** 31
 

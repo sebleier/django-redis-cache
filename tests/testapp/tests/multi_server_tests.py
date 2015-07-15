@@ -17,11 +17,11 @@ class MultiServerTests(object):
     def test_key_distribution(self):
         n = 10000
         self.cache.set('a', 'a')
-        for i in xrange(n):
+        for i in range(n):
             self.cache.set(i, i)
         keys = [
             len(client.keys('*'))
-            for client in self.cache.clients.itervalues()
+            for client in self.cache.clients.values()
         ]
         self.assertLess(((stddev(keys) / n) * 100.0), 10)
 

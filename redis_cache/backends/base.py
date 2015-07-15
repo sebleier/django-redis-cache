@@ -123,7 +123,7 @@ class BaseRedisCache(BaseCache):
         """
         cache = self.options.get('MASTER_CACHE', None)
         if cache is None:
-            return self.client_list[0]
+            return next(iter(self.client_list))
 
         kwargs = parse_connection_kwargs(cache, db=self.db)
         return self.clients[(

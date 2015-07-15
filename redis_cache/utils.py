@@ -1,11 +1,10 @@
 import warnings
 
 from django.core.exceptions import ImproperlyConfigured
-from redis.connection import SSLConnection, UnixDomainSocketConnection
-from redis._compat import iteritems, urlparse, parse_qs
+from redis.connection import SSLConnection
 
 from redis_cache.compat import (
-    smart_text, python_2_unicode_compatible, bytes_type
+    smart_text, python_2_unicode_compatible, parse_qs, urlparse
 )
 
 try:
@@ -28,6 +27,9 @@ class CacheKey(object):
 
     def __unicode__(self):
         return smart_text(self._versioned_key)
+
+    def __hash__(self):
+        return hash(self._versioned_key)
 
     __repr__ = __str__ = __unicode__
 
@@ -95,7 +97,7 @@ def parse_connection_kwargs(server, db=None, **kwargs):
 
         url_options = {}
 
-        for name, value in iteritems(parse_qs(qs)):
+        for name, value in parse_qs(qs).items():
             if value and len(value) > 0:
                 url_options[name] = value[0]
 
