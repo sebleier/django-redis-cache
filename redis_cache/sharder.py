@@ -2,7 +2,6 @@ from bisect import insort, bisect
 from hashlib import md5
 from math import log
 import sys
-from functools import total_ordering
 
 try:
     maxint = sys.maxint
@@ -16,27 +15,17 @@ def make_hash(s):
     return int(md5(s.encode('utf-8')).hexdigest()[:DIGITS], 16)
 
 
-@total_ordering
 class Node(object):
     def __init__(self, node, i):
         self._node = node
         self._i = i
         self._position = make_hash("{0}:{1}".format(i, self._node))
 
-    def __lt__(self, other):
+    def __gt__(self, other):
         if isinstance(other, int):
-            return self._position < other
+            return self._position > other
         elif isinstance(other, Node):
-            return self._position < other._position
-        raise TypeError(
-            'Cannot compare this class with "%s" type' % type(other)
-        )
-
-    def __eq__(self, other):
-        if isinstance(other, int):
-            return self._node == other
-        elif isinstance(other, Node):
-            return self._node == other._node
+            return self._position > other._position
         raise TypeError(
             'Cannot compare this class with "%s" type' % type(other)
         )
