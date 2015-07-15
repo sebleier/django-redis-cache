@@ -8,6 +8,11 @@ from redis_cache.compat import (
     smart_text, python_2_unicode_compatible, bytes_type
 )
 
+try:
+    basestring
+except NameError:
+    basestring = str
+
 
 @python_2_unicode_compatible
 class CacheKey(object):
@@ -31,7 +36,7 @@ def get_servers(location):
     """Returns a list of servers given the server argument passed in from
     Django.
     """
-    if isinstance(location, bytes_type):
+    if isinstance(location, basestring):
         servers = location.split(',')
     elif hasattr(location, '__iter__'):
         servers = location
