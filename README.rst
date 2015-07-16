@@ -25,10 +25,12 @@ Changelog
 * Deprecate support for Python 2.6.  The cache should still work, but tests
 will fail and compatibility will not be guaranteed going forward.
 
-Backward incompatibilities:
+**Backward incompatibilities:**
 
-The ``HashRing`` behavior has changed to maintain a proper keyspace balance.
+* The ``HashRing`` behavior has changed to maintain a proper keyspace balance.
 This will lead to some cache misses, so be aware.
+
+* Now requires `redis-py`_ >= 2.10.3
 
 1.0.0
 -----
@@ -92,10 +94,10 @@ control and the option to roll your own parser class if you are so bold.
 Requirements
 ============
 
-`redis-py`_ >= 2.4.5
+`redis-py`_ >= 2.10.3
 `redis`_ >= 2.4
 `hiredis`_
-`python`_ >= 2.5
+`python`_ >= 2.7
 
 1. Run ``pip install django-redis-cache``.
 
