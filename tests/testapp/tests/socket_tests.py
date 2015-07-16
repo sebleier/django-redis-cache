@@ -1,4 +1,5 @@
 # # -*- coding: utf-8 -*-
+from collections import Counter
 from tests.testapp.tests.base_tests import BaseRedisTestCase
 from tests.testapp.tests.multi_server_tests import MultiServerTests
 
@@ -7,9 +8,6 @@ try:
 except ImportError:
     from django.test.utils import override_settings
 from django.test import TestCase
-
-from redis_cache.cache import ImproperlyConfigured
-from redis.connection import UnixDomainSocketConnection
 
 
 LOCATION = "unix://:yadayada@/tmp/redis0.sock?db=15"
@@ -87,7 +85,16 @@ class SinglePythonParserTestCase(SocketTestCase):
     }
 )
 class MultipleHiredisTestCase(MultiServerTests, SocketTestCase):
-    pass
+
+    def test_equal_number_of_nodes(self):
+        counter = Counter(
+            [node._node[3] for node in self.cache.sharder._nodes]
+        )
+        self.assertEqual(counter, {
+            '/tmp/redis0.sock': 16,
+            '/tmp/redis1.sock': 16,
+            '/tmp/redis2.sock': 16,
+        })
 
 
 @override_settings(
