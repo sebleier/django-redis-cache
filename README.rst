@@ -19,6 +19,17 @@ A Redis cache backend for Django
 Changelog
 =========
 
+1.2.0
+-----
+
+* Deprecate support for Python 2.6.  The cache should still work, but tests
+will fail and compatibility will not be guaranteed going forward.
+
+Backward incompatibilities:
+
+The ``HashRing`` behavior has changed to maintain a proper keyspace balance.
+This will lead to some cache misses, so be aware.
+
 1.0.0
 -----
 
