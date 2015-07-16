@@ -1,5 +1,8 @@
 # # -*- coding: utf-8 -*-
-from collections import Counter
+try:
+    from collections import Counter
+except ImportError:
+    from redis_cache.compat import Counter
 from tests.testapp.tests.base_tests import BaseRedisTestCase
 from tests.testapp.tests.multi_server_tests import MultiServerTests
 

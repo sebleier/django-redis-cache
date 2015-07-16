@@ -1,4 +1,8 @@
-from collections import Counter
+try:
+    from collections import Counter
+except ImportError:
+    from redis_cache.compat import Counter
+
 from math import sqrt
 from redis_cache.sharder import HashRing
 
