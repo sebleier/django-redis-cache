@@ -1,8 +1,6 @@
 import sys
 import django
-from operator import itemgetter
-from heapq import nlargest
-from itertools import repeat, ifilter
+
 
 PY3 = (sys.version_info >= (3,))
 
