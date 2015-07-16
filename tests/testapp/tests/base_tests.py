@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from __future__ import unicode_literals
+
 from hashlib import sha1
 import os
 import subprocess
@@ -315,10 +317,10 @@ class BaseRedisTestCase(SetupMixin):
     def test_unicode(self):
         # Unicode values can be cached
         stuff = {
-            u'ascii': u'ascii_value',
-            u'unicode_ascii': u'Iñtërnâtiônàlizætiøn1',
-            u'Iñtërnâtiônàlizætiøn': u'Iñtërnâtiônàlizætiøn2',
-            u'ascii': {u'x': 1}
+            'ascii': 'ascii_value',
+            'unicode_ascii': 'Iñtërnâtiônàlizætiøn1',
+            'Iñtërnâtiônàlizætiøn': 'Iñtërnâtiônàlizætiøn2',
+            'ascii': {'x': 1}
         }
         for (key, value) in stuff.items():
             self.cache.set(key, value)
