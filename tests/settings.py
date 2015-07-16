@@ -32,3 +32,4 @@ CACHES = {
     },
 }
 TEST_RUNNER = 'django_nose.NoseTestSuiteRunner'
+MIDDLEWARE_CLASSES = tuple()

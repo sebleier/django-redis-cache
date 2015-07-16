@@ -1,6 +1,5 @@
 language: python
 python:
-  - "2.6"
   - "2.7"
   - "3.2"
   - "3.3"
@@ -11,6 +10,7 @@ env:
   - DJANGO_VERSION=1.7
   - DJANGO_VERSION=1.8
 # command to run tests
+install: ./install_redis.sh
 script: make test DJANGO_VERSION=$DJANGO_VERSION
 branches:
   only:

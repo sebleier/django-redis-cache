@@ -1,35 +1,35 @@
 from bisect import insort, bisect
-from hashlib import md5
-from math import log
-import sys
-
-try:
-    maxint = sys.maxint
-except AttributeError:
-    maxint = sys.maxsize
-
-DIGITS = int(log(maxint) / log(16))
+import hashlib
+from redis_cache.compat import smart_text
 
 
-def make_hash(s):
-    return int(md5(s.encode('utf-8')).hexdigest()[:DIGITS], 16)
+DIGITS = 8
+
+
+def get_slot(s):
+    _hash = hashlib.md5(s.encode('utf-8')).hexdigest()
+    return int(_hash[-DIGITS:], 16)
 
 
 class Node(object):
+
     def __init__(self, node, i):
         self._node = node
         self._i = i
-        self._position = make_hash("%d:%s" % (i, str(self._node)))
+        key = "{0}:{1}".format(
+            smart_text(i),
+            smart_text(self._node),
+        )
+        self._position = get_slot(key)
 
-    def __cmp__(self, other):
+    def __gt__(self, other):
         if isinstance(other, int):
-            return cmp(self._position, other)
+            return self._position > other
         elif isinstance(other, Node):
-            return cmp(self._position, other._position)
-        raise TypeError('Cannot compare this class with "%s" type' % type(other))
-
-    def __eq__(self, other):
-        return self._node == other._node
+            return self._position > other._position
+        raise TypeError(
+            'Cannot compare this class with "%s" type' % type(other)
+        )
 
 
 class HashRing(object):
@@ -42,7 +42,7 @@ class HashRing(object):
         insort(self._nodes, Node(node, i))
 
     def add(self, node, weight=1):
-        for i in xrange(weight * self.replicas):
+        for i in range(weight * self.replicas):
             self._add(node, i)
 
     def remove(self, node):
@@ -52,5 +52,5 @@ class HashRing(object):
                 del self._nodes[n - i - 1]
 
     def get_node(self, key):
-        i = bisect(self._nodes, make_hash(key)) - 1
+        i = bisect(self._nodes, get_slot(smart_text(key))) - 1
         return self._nodes[i]._node

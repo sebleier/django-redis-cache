@@ -5,7 +5,6 @@ except ImportError:
 import random
 
 from redis_cache.backends.base import BaseRedisCache
-from redis_cache.compat import bytes_type, DEFAULT_TIMEOUT
 
 
 class RedisCache(BaseRedisCache):
@@ -26,7 +25,7 @@ class RedisCache(BaseRedisCache):
     def get_client(self, key, write=False):
         if write and self.master_client is not None:
             return self.master_client
-        return random.choice(self.client_list)
+        return random.choice(list(self.client_list))
 
     ####################
     # Django cache api #

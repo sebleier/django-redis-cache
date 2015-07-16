@@ -19,4 +19,3 @@ MANIFEST
 .venv
 redis/
 */_build/
-requirements_local.txt
