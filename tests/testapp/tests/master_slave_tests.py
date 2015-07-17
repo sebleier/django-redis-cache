@@ -11,11 +11,11 @@ from redis_cache.connection import pool
 from tests.testapp.tests.base_tests import SetupMixin
 
 
-MASTER_LOCATION = "127.0.0.2:6387"
+MASTER_LOCATION = "127.0.0.1:6387"
 LOCATIONS = [
-    '127.0.0.2:6387',
-    '127.0.0.2:6388',
-    '127.0.0.2:6389',
+    '127.0.0.1:6387',
+    '127.0.0.1:6388',
+    '127.0.0.1:6389',
 ]
 
 
@@ -43,7 +43,7 @@ class MasterSlaveTestCase(SetupMixin, TestCase):
         client = cache.master_client
         self.assertEqual(
             client.connection_pool.connection_identifier,
-            ('127.0.0.2', 6387, 1, None)
+            ('127.0.0.1', 6387, 1, None)
         )
         self.assertEqual(len(pool._connection_pools), 3)
 
