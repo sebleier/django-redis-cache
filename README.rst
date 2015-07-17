@@ -19,6 +19,12 @@ A Redis cache backend for Django
 Changelog
 =========
 
+1.3.0
+-----
+
+* Adds support for pluggable serializers including pickle(default), json,
+msgpack, and yaml.
+
 1.2.0
 -----
 
@@ -232,6 +238,7 @@ Example::
 Running Tests
 =============
 
+``./install_redis.sh``
 ``make test``
 
 .. _redis-py: http://github.com/andymccurdy/redis-py/
