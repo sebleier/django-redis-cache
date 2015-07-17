@@ -6,11 +6,6 @@ from django.utils.importlib import import_module
 from redis_cache.compat import smart_bytes, DEFAULT_TIMEOUT
 
 try:
-    import cPickle as pickle
-except ImportError:
-    import pickle
-
-try:
     import redis
 except ImportError:
     raise InvalidCacheBackendError(
@@ -63,6 +58,11 @@ class BaseRedisCache(BaseCache):
         self.connection_pool_class = self.get_connection_pool_class()
         self.connection_pool_class_kwargs = (
             self.get_connection_pool_class_kwargs()
+        )
+        self.serializer_class = self.get_serializer_class()
+        self.serializer_class_kwargs = self.get_serializer_class_kwargs()
+        self.serializer = self.serializer_class(
+            **self.serializer_class_kwargs
         )
 
     def __getstate__(self):
@@ -117,6 +117,21 @@ class BaseRedisCache(BaseCache):
     def get_connection_pool_class_kwargs(self):
         return self.options.get('CONNECTION_POOL_CLASS_KWARGS', {})
 
+    def get_serializer_class(self):
+        serializer_class = self.options.get(
+            'SERIALIZER_CLASS',
+            'redis_cache.serializers.PickleSerializer'
+        )
+        module_name, class_name = serializer_class.rsplit('.', 1)
+        module = import_module(module_name)
+        try:
+            return getattr(module, class_name)
+        except AttributeError:
+            raise ImportError('cannot import name %s' % class_name)
+
+    def get_serializer_class_kwargs(self):
+        return self.options.get('SERIALIZER_CLASS_KWARGS', {})
+
     def get_master_client(self):
         """
         Get the write server:port of the master cache
@@ -150,14 +165,10 @@ class BaseRedisCache(BaseCache):
         return client
 
     def serialize(self, value):
-        return pickle.dumps(value, self.pickle_version)
+        return self.serializer.serialize(value)
 
     def deserialize(self, value):
-        """
-        Unpickles the given value.
-        """
-        value = smart_bytes(value)
-        return pickle.loads(value)
+        return self.serializer.deserialize(value)
 
     def get_value(self, original):
         try:

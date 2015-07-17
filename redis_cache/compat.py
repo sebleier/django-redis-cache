@@ -13,7 +13,6 @@ except ImportError:
     smart_text = smart_unicode
     smart_bytes = smart_str
 
-
 if PY3:
     bytes_type = bytes
     from urllib.parse import parse_qs, urlparse
