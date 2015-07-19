@@ -30,6 +30,7 @@ class CacheConnectionPool(object):
         unix_socket_path=None,
         connection_pool_class=None,
         connection_pool_class_kwargs=None,
+        socket_timeout=None,
         **kwargs
     ):
         connection_identifier = (host, port, db, unix_socket_path)
@@ -48,6 +49,7 @@ class CacheConnectionPool(object):
                 'password': password,
                 'connection_class': connection_class,
                 'parser_class': parser_class,
+                'socket_timeout': socket_timeout,
             }
             kwargs.update(connection_pool_class_kwargs)
 
