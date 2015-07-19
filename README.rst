@@ -19,6 +19,11 @@ A Redis cache backend for Django
 Changelog
 =========
 
+1.4.0
+-----
+
+* Adds support for providing a socket timeout on the redis-py client.
+
 1.3.0
 -----
 
