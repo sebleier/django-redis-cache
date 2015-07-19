@@ -55,6 +55,7 @@ class BaseRedisCache(BaseCache):
         self.password = self.get_password()
         self.parser_class = self.get_parser_class()
         self.pickle_version = self.get_pickle_version()
+        self.socket_timeout = self.get_socket_timeout()
         self.connection_pool_class = self.get_connection_pool_class()
         self.connection_pool_class_kwargs = (
             self.get_connection_pool_class_kwargs()
@@ -105,6 +106,9 @@ class BaseRedisCache(BaseCache):
         except (ValueError, TypeError):
             raise ImproperlyConfigured("pickle version value must be an integer")
 
+    def get_socket_timeout(self):
+        return self.options.get('SOCKET_TIMEOUT', None)
+
     def get_connection_pool_class(self):
         pool_class = self.options.get('CONNECTION_POOL_CLASS', 'redis.ConnectionPool')
         module_name, class_name = pool_class.rsplit('.', 1)
@@ -153,6 +157,7 @@ class BaseRedisCache(BaseCache):
             server,
             db=self.db,
             password=self.password,
+            socket_timeout=self.socket_timeout,
         )
         client = redis.Redis(**kwargs)
         kwargs.update(
