@@ -8,7 +8,7 @@ from django.test import TestCase
 from redis.exceptions import ConnectionError
 from tests.testapp.tests.base_tests import SetupMixin
 
-LOCATION = "127.0.0.1:6382"
+LOCATION = "127.0.0.1:6381"
 
 
 @override_settings(

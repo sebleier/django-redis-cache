@@ -60,10 +60,19 @@ class BaseRedisCache(BaseCache):
         self.connection_pool_class_kwargs = (
             self.get_connection_pool_class_kwargs()
         )
+
+        # Serializer
         self.serializer_class = self.get_serializer_class()
         self.serializer_class_kwargs = self.get_serializer_class_kwargs()
         self.serializer = self.serializer_class(
             **self.serializer_class_kwargs
+        )
+
+        # Compressor
+        self.compressor_class = self.get_compressor_class()
+        self.compressor_class_kwargs = self.get_compressor_class_kwargs()
+        self.compressor = self.compressor_class(
+            **self.compressor_class_kwargs
         )
 
     def __getstate__(self):
@@ -136,6 +145,21 @@ class BaseRedisCache(BaseCache):
     def get_serializer_class_kwargs(self):
         return self.options.get('SERIALIZER_CLASS_KWARGS', {})
 
+    def get_compressor_class(self):
+        compressor_class = self.options.get(
+            'COMPRESSOR_CLASS',
+            'redis_cache.compressors.NoopCompressor'
+        )
+        module_name, class_name = compressor_class.rsplit('.', 1)
+        module = import_module(module_name)
+        try:
+            return getattr(module, class_name)
+        except AttributeError:
+            raise ImportError('cannot import name %s' % class_name)
+
+    def get_compressor_class_kwargs(self):
+        return self.options.get('COMPRESSOR_CLASS_KWARGS', {})
+
     def get_master_client(self):
         """
         Get the write server:port of the master cache
@@ -175,17 +199,25 @@ class BaseRedisCache(BaseCache):
     def deserialize(self, value):
         return self.serializer.deserialize(value)
 
+    def compress(self, value):
+        return self.compressor.compress(value)
+
+    def decompress(self, value):
+        return self.compressor.decompress(value)
+
     def get_value(self, original):
         try:
             value = int(original)
         except (ValueError, TypeError):
-            value = self.deserialize(original)
+            value = self.decompress(original)
+            value = self.deserialize(value)
         return value
 
     def prep_value(self, value):
         if isinstance(value, int) and not isinstance(value, bool):
             return value
-        return self.serialize(value)
+        value = self.serialize(value)
+        return self.compress(value)
 
     def make_key(self, key, version=None):
         if not isinstance(key, CacheKey):
@@ -382,8 +414,7 @@ class BaseRedisCache(BaseCache):
         keys = client.keys('*')
         for key in keys:
             timeout = client.ttl(key)
-            value = self.deserialize(client.get(key))
-
+            value = self.get_value(client.get(key))
             if timeout is None:
                 client.set(key, self.prep_value(value))
 
