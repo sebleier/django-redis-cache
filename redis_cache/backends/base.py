@@ -3,8 +3,6 @@ from django.core.exceptions import ImproperlyConfigured
 from django.utils import importlib
 from django.utils.importlib import import_module
 
-from redis_cache.compat import smart_bytes, DEFAULT_TIMEOUT
-
 try:
     import redis
 except ImportError:
@@ -14,8 +12,11 @@ except ImportError:
 
 from redis.connection import DefaultParser
 
+from redis_cache.compat import smart_bytes, DEFAULT_TIMEOUT
 from redis_cache.connection import pool
-from redis_cache.utils import CacheKey, get_servers, parse_connection_kwargs
+from redis_cache.utils import (
+    CacheKey, get_servers, parse_connection_kwargs, import_class
+)
 
 
 from functools import wraps
@@ -92,18 +93,10 @@ class BaseRedisCache(BaseCache):
         return self.params.get('password', self.options.get('PASSWORD', None))
 
     def get_parser_class(self):
-        cls = self.options.get('PARSER_CLASS', None)
-        if cls is None:
+        parser_class = self.options.get('PARSER_CLASS', None)
+        if parser_class is None:
             return DefaultParser
-        mod_path, cls_name = cls.rsplit('.', 1)
-        try:
-            mod = importlib.import_module(mod_path)
-            parser_class = getattr(mod, cls_name)
-        except AttributeError:
-            raise ImproperlyConfigured("Could not find parser class '%s'" % parser_class)
-        except ImportError as ex:
-            raise ImproperlyConfigured("Could not find module '%s'" % ex)
-        return parser_class
+        return import_class(parser_class)
 
     def get_pickle_version(self):
         """
@@ -120,12 +113,7 @@ class BaseRedisCache(BaseCache):
 
     def get_connection_pool_class(self):
         pool_class = self.options.get('CONNECTION_POOL_CLASS', 'redis.ConnectionPool')
-        module_name, class_name = pool_class.rsplit('.', 1)
-        module = import_module(module_name)
-        try:
-            return getattr(module, class_name)
-        except AttributeError:
-            raise ImportError('cannot import name %s' % class_name)
+        return import_class(pool_class)
 
     def get_connection_pool_class_kwargs(self):
         return self.options.get('CONNECTION_POOL_CLASS_KWARGS', {})
@@ -135,12 +123,7 @@ class BaseRedisCache(BaseCache):
             'SERIALIZER_CLASS',
             'redis_cache.serializers.PickleSerializer'
         )
-        module_name, class_name = serializer_class.rsplit('.', 1)
-        module = import_module(module_name)
-        try:
-            return getattr(module, class_name)
-        except AttributeError:
-            raise ImportError('cannot import name %s' % class_name)
+        return import_class(serializer_class)
 
     def get_serializer_class_kwargs(self):
         return self.options.get('SERIALIZER_CLASS_KWARGS', {})
@@ -150,12 +133,7 @@ class BaseRedisCache(BaseCache):
             'COMPRESSOR_CLASS',
             'redis_cache.compressors.NoopCompressor'
         )
-        module_name, class_name = compressor_class.rsplit('.', 1)
-        module = import_module(module_name)
-        try:
-            return getattr(module, class_name)
-        except AttributeError:
-            raise ImportError('cannot import name %s' % class_name)
+        return import_class(compressor_class)
 
     def get_compressor_class_kwargs(self):
         return self.options.get('COMPRESSOR_CLASS_KWARGS', {})
