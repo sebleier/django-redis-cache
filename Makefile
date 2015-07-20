@@ -21,7 +21,7 @@ clean:
 
 .PHONY: test
 test: install_requirements
-	PYTHONPATH=$(PYTHONPATH): django-admin.py test tests.testapp.tests.socket_timeout_tests:SocketTimeoutTestCase.test_socket_timeout --settings=tests.settings -s
+	PYTHONPATH=$(PYTHONPATH): django-admin.py test --settings=tests.settings -s
 
 .PHONY: shell
 shell:

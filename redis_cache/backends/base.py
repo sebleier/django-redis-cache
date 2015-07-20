@@ -3,8 +3,6 @@ from django.core.exceptions import ImproperlyConfigured
 from django.utils import importlib
 from django.utils.importlib import import_module
 
-from redis_cache.compat import smart_bytes, DEFAULT_TIMEOUT
-
 try:
     import redis
 except ImportError:
@@ -14,8 +12,11 @@ except ImportError:
 
 from redis.connection import DefaultParser
 
+from redis_cache.compat import smart_bytes, DEFAULT_TIMEOUT
 from redis_cache.connection import pool
-from redis_cache.utils import CacheKey, get_servers, parse_connection_kwargs
+from redis_cache.utils import (
+    CacheKey, get_servers, parse_connection_kwargs, import_class
+)
 
 
 from functools import wraps
@@ -60,10 +61,19 @@ class BaseRedisCache(BaseCache):
         self.connection_pool_class_kwargs = (
             self.get_connection_pool_class_kwargs()
         )
+
+        # Serializer
         self.serializer_class = self.get_serializer_class()
         self.serializer_class_kwargs = self.get_serializer_class_kwargs()
         self.serializer = self.serializer_class(
             **self.serializer_class_kwargs
+        )
+
+        # Compressor
+        self.compressor_class = self.get_compressor_class()
+        self.compressor_class_kwargs = self.get_compressor_class_kwargs()
+        self.compressor = self.compressor_class(
+            **self.compressor_class_kwargs
         )
 
     def __getstate__(self):
@@ -83,18 +93,10 @@ class BaseRedisCache(BaseCache):
         return self.params.get('password', self.options.get('PASSWORD', None))
 
     def get_parser_class(self):
-        cls = self.options.get('PARSER_CLASS', None)
-        if cls is None:
+        parser_class = self.options.get('PARSER_CLASS', None)
+        if parser_class is None:
             return DefaultParser
-        mod_path, cls_name = cls.rsplit('.', 1)
-        try:
-            mod = importlib.import_module(mod_path)
-            parser_class = getattr(mod, cls_name)
-        except AttributeError:
-            raise ImproperlyConfigured("Could not find parser class '%s'" % parser_class)
-        except ImportError as ex:
-            raise ImproperlyConfigured("Could not find module '%s'" % ex)
-        return parser_class
+        return import_class(parser_class)
 
     def get_pickle_version(self):
         """
@@ -111,12 +113,7 @@ class BaseRedisCache(BaseCache):
 
     def get_connection_pool_class(self):
         pool_class = self.options.get('CONNECTION_POOL_CLASS', 'redis.ConnectionPool')
-        module_name, class_name = pool_class.rsplit('.', 1)
-        module = import_module(module_name)
-        try:
-            return getattr(module, class_name)
-        except AttributeError:
-            raise ImportError('cannot import name %s' % class_name)
+        return import_class(pool_class)
 
     def get_connection_pool_class_kwargs(self):
         return self.options.get('CONNECTION_POOL_CLASS_KWARGS', {})
@@ -126,15 +123,20 @@ class BaseRedisCache(BaseCache):
             'SERIALIZER_CLASS',
             'redis_cache.serializers.PickleSerializer'
         )
-        module_name, class_name = serializer_class.rsplit('.', 1)
-        module = import_module(module_name)
-        try:
-            return getattr(module, class_name)
-        except AttributeError:
-            raise ImportError('cannot import name %s' % class_name)
+        return import_class(serializer_class)
 
     def get_serializer_class_kwargs(self):
         return self.options.get('SERIALIZER_CLASS_KWARGS', {})
+
+    def get_compressor_class(self):
+        compressor_class = self.options.get(
+            'COMPRESSOR_CLASS',
+            'redis_cache.compressors.NoopCompressor'
+        )
+        return import_class(compressor_class)
+
+    def get_compressor_class_kwargs(self):
+        return self.options.get('COMPRESSOR_CLASS_KWARGS', {})
 
     def get_master_client(self):
         """
@@ -175,17 +177,25 @@ class BaseRedisCache(BaseCache):
     def deserialize(self, value):
         return self.serializer.deserialize(value)
 
+    def compress(self, value):
+        return self.compressor.compress(value)
+
+    def decompress(self, value):
+        return self.compressor.decompress(value)
+
     def get_value(self, original):
         try:
             value = int(original)
         except (ValueError, TypeError):
-            value = self.deserialize(original)
+            value = self.decompress(original)
+            value = self.deserialize(value)
         return value
 
     def prep_value(self, value):
         if isinstance(value, int) and not isinstance(value, bool):
             return value
-        return self.serialize(value)
+        value = self.serialize(value)
+        return self.compress(value)
 
     def make_key(self, key, version=None):
         if not isinstance(key, CacheKey):
@@ -382,8 +392,7 @@ class BaseRedisCache(BaseCache):
         keys = client.keys('*')
         for key in keys:
             timeout = client.ttl(key)
-            value = self.deserialize(client.get(key))
-
+            value = self.get_value(client.get(key))
             if timeout is None:
                 client.set(key, self.prep_value(value))
 

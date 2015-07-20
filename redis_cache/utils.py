@@ -1,6 +1,7 @@
 import warnings
 
 from django.core.exceptions import ImproperlyConfigured
+from django.utils.importlib import import_module
 from redis.connection import SSLConnection
 
 from redis_cache.compat import (
@@ -47,6 +48,19 @@ def get_servers(location):
             '"server" must be an iterable or string'
         )
     return servers
+
+
+def import_class(path):
+    module_name, class_name = path.rsplit('.', 1)
+    try:
+        module = import_module(module_name)
+    except ImportError:
+        raise ImproperlyConfigured('Could not find module "%s"' % module_name)
+    else:
+        try:
+            return getattr(module, class_name)
+        except AttributeError:
+            raise ImproperlyConfigured('Cannot import "%s"' % class_name)
 
 
 def parse_connection_kwargs(server, db=None, **kwargs):
