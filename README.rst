@@ -19,6 +19,12 @@ A Redis cache backend for Django
 Changelog
 =========
 
+1.5.0
+-----
+
+* Adds ability to compress/decompress cache values using pluggable compressors
+including zlib, bzip2, or a custom implementation.
+
 1.4.0
 -----
 
