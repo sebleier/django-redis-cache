@@ -31,6 +31,7 @@ class CacheConnectionPool(object):
         connection_pool_class=None,
         connection_pool_class_kwargs=None,
         socket_timeout=None,
+        socket_connect_timeout=None,
         **kwargs
     ):
         connection_identifier = (host, port, db, unix_socket_path)
@@ -51,6 +52,10 @@ class CacheConnectionPool(object):
                 'parser_class': parser_class,
                 'socket_timeout': socket_timeout,
             }
+
+            if not issubclass(connection_class, UnixDomainSocketConnection):
+                kwargs['socket_connect_timeout'] = socket_connect_timeout
+
             kwargs.update(connection_pool_class_kwargs)
 
             if unix_socket_path is None:
