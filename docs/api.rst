@@ -10,7 +10,7 @@ Standard Django Cache API
 
     :param key: Location of the value
     :param default: Value to return if key does not exist in cache.
-    :rtype: Value what was cached.
+    :rtype: Value that was cached.
 
 
 .. function:: add(self, key, value[, timeout=None]):
