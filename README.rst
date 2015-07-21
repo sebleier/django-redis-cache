@@ -16,6 +16,8 @@ Redis Django Cache Backend
 
 A Redis cache backend for Django
 
+Docs can be found at `http://django-redis-cache.readthedocs.org/en/latest/`_.
+
 Changelog
 =========
 
@@ -250,6 +252,7 @@ Running Tests
 =============
 
 ``./install_redis.sh``
+
 ``make test``
 
 .. _redis-py: http://github.com/andymccurdy/redis-py/
