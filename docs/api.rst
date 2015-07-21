@@ -13,14 +13,14 @@ Standard Django Cache API
     :rtype: Value that was cached.
 
 
-.. function:: add(self, key, value[, timeout=None]):
+.. function:: add(self, key, value[, timeout=DEFAULT_TIMEOUT]):
 
    Add a value to the cache, failing if the key already exists.
 
    :param key: Location of the value
    :param value: Value to cache
    :param timeout: Number of seconds to hold value in cache.
-   :type timeout: Number of seconds or None
+   :type timeout: Number of seconds or DEFAULT_TIMEOUT
    :rtype: True if object was added and False if it already exists.
 
 
@@ -33,7 +33,7 @@ Standard Django Cache API
     :param key: Location of the value
     :param value: Value to cache
     :param timeout: Number of seconds to hold value in cache.
-    :type timeout: Number of seconds or None
+    :type timeout: Number of seconds or DEFAULT_TIMEOUT
 
 
 .. function:: delete(self, key):

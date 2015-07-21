@@ -1,7 +1,5 @@
 from django.core.cache.backends.base import BaseCache, InvalidCacheBackendError
 from django.core.exceptions import ImproperlyConfigured
-from django.utils import importlib
-from django.utils.importlib import import_module
 
 try:
     import redis
@@ -12,7 +10,7 @@ except ImportError:
 
 from redis.connection import DefaultParser
 
-from redis_cache.compat import smart_bytes, DEFAULT_TIMEOUT
+from redis_cache.compat import DEFAULT_TIMEOUT
 from redis_cache.connection import pool
 from redis_cache.utils import (
     CacheKey, get_servers, parse_connection_kwargs, import_class
@@ -216,16 +214,26 @@ class BaseRedisCache(BaseCache):
     def make_keys(self, keys, version=None):
         return [self.make_key(key, version=version) for key in keys]
 
+    def get_timeout(self, timeout):
+        if timeout is DEFAULT_TIMEOUT:
+            timeout = self.default_timeout
+
+        if timeout is not None:
+            timeout = int(timeout)
+
+        return timeout
+
     ####################
     # Django cache api #
     ####################
 
     @get_client(write=True)
-    def add(self, client, key, value, timeout=None):
+    def add(self, client, key, value, timeout=DEFAULT_TIMEOUT):
         """Add a value to the cache, failing if the key already exists.
 
         Returns ``True`` if the object was added, ``False`` if not.
         """
+        timeout = self.get_timeout(timeout)
         return self._set(client, key, self.prep_value(value), timeout, _add_only=True)
 
     @get_client()
@@ -259,11 +267,7 @@ class BaseRedisCache(BaseCache):
     def set(self, client, key, value, timeout=DEFAULT_TIMEOUT):
         """Persist a value to the cache, and set an optional expiration time.
         """
-        if timeout is DEFAULT_TIMEOUT:
-            timeout = self.default_timeout
-
-        if timeout is not None:
-            timeout = int(timeout)
+        timeout = self.get_timeout(timeout)
 
         result = self._set(client, key, self.prep_value(value), timeout, _add_only=False)
 
@@ -314,7 +318,7 @@ class BaseRedisCache(BaseCache):
     def _set_many(self, client, data):
         return client.mset(data)
 
-    def set_many(self, data, timeout=None, version=None):
+    def set_many(self, data, timeout=DEFAULT_TIMEOUT, version=None):
         """Set a bunch of values in the cache at once from a dict of key/value
         pairs. This is much more efficient than calling set() multiple times.
 
@@ -381,9 +385,11 @@ class BaseRedisCache(BaseCache):
         raise NotImplementedError
 
     @get_client(write=True)
-    def get_or_set(self, client, key, func, timeout=None):
+    def get_or_set(self, client, key, func, timeout=DEFAULT_TIMEOUT):
         if not callable(func):
             raise Exception("Must pass in a callable")
+
+        timeout = self.get_timeout(timeout)
 
         dogpile_lock_key = "_lock" + key._versioned_key
         dogpile_lock = client.get(dogpile_lock_key)
