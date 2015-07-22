@@ -58,7 +58,7 @@ class CacheConnectionPool(object):
 
             kwargs.update(connection_pool_class_kwargs)
 
-            if unix_socket_path is None:
+            if unix_socket_path in (None, ''):
                 kwargs.update({
                     'host': host,
                     'port': port,

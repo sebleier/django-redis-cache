@@ -93,6 +93,7 @@ def parse_connection_kwargs(server, db=None, **kwargs):
 
     NOTE: taken from `redis.ConnectionPool.from_url` in redis-py
     """
+    kwargs['unix_socket_path'] = ''
     if '://' in server:
         url = server
         url_string = url
