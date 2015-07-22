@@ -618,3 +618,26 @@ class ConfigurationTestCase(SetupMixin, TestCase):
     def test_bad_parser_import(self):
         with self.assertRaises(ImproperlyConfigured):
             get_cache('default')
+
+
+@override_settings(CACHES={
+    'default': {
+        'BACKEND': 'redis_cache.RedisCache',
+        'LOCATION': [
+            'redis://:yadayada@localhost:6381/15',
+            'redis://:yadayada@localhost:6382/15',
+            'redis://:yadayada@localhost:6383/15',
+        ],
+        'OPTIONS': {
+            'DB': 1,
+            'PASSWORD': 'yadayada',
+            'PARSER_CLASS': 'redis.connection.HiredisParser',
+            'PICKLE_VERSION': -1,
+            'MASTER_CACHE': 'redis://:yadayada@localhost:6381/15',
+        },
+    },
+})
+class RedisUrlRegressionTests(SetupMixin, TestCase):
+
+    def test_unix_path_error_using_redis_url(self):
+        pass
