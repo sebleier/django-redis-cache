@@ -29,6 +29,8 @@ single redis server or several redis servers setup in a primary/secondary
 configuration. The primary is used for writing and secondaries are
 replicated versions of the primary for read-access.
 
+**Default Backend:** ``redis_cache.RedisCache``
+
 .. code:: python
 
     # Unified keyspace
@@ -74,6 +76,8 @@ The ``DB`` option will allow key/values to exist in a different keyspace.  The
 ``DB`` value can either be defined in the ``OPTIONS`` or in the ``LOCATION``
 scheme.
 
+**Default DB:** ``1``
+
 .. code:: python
 
     CACHES = {
@@ -106,8 +110,36 @@ option.
     }
 
 
-Pluggable Parse Classes
------------------------
+Master/Slave Setup
+------------------
+
+It's possible to have multiple redis servers in a master/slave or
+primary/secondary configuration.  Here we have the primary server acting as a
+read/write server and secondary servers as read-only.
+
+.. code:: python
+
+    CACHES = {
+        'default': {
+            'LOCATION': [
+                '127.0.0.1:6379',  # Primary
+                '127.0.0.1:6380',  # Secondary
+                '127.0.0.1:6381',  # Secondary
+            ],
+            'OPTIONS': {
+                'PASSWORD': 'yadayada',
+                'MASTER_CACHE': '127.0.0.1:6379',
+                ...
+            },
+            ...
+        }
+    }
+
+
+
+
+Pluggable Parser Classes
+------------------------
 
 `redis-py`_ comes with two parsers: ``HiredisParser`` and ``PythonParser``.
 The former uses the `hiredis`_ library to parse responses from the redis
@@ -115,7 +147,10 @@ server, while the latter uses Python.  Hiredis is a library that uses C, so it
 is much faster than the python parser, but requires installing the library
 separately.
 
-To install `hiredis`_:
+**Default Parser:** ``redis.connection.PythonParser``
+
+The default parser is the Python parser because there is no other dependency,
+but I would recommend using `hiredis`_:
 
     ``pip install hiredis``
 
@@ -138,6 +173,12 @@ Pickle Version
 
 When using the pickle serializer, you can use ``PICKLE_VERSION`` to specify
 the protocol version of pickle you want to use to serialize your python objects.
+
+**Default Pickle Version:** `-1`
+
+The default pickle protocol is -1, which is the highest and latest version.
+This value should be pinned to a specific protocol number, since ``-1`` means
+different things between versions of Python.
 
 .. code:: python
 
@@ -165,6 +206,10 @@ If provided, the socket will time out when the established connection exceeds
 Similarly, the socket will time out if it takes more than
 ``SOCKET_CONNECT_TIMEOUT`` seconds to establish.
 
+**Default Socket Timeout:** ``None``
+
+**Default Socket Connect Timeout:** ``None``
+
 .. code:: python
 
     CACHES={
@@ -190,6 +235,8 @@ reuse to send or retrieve data from the redis server.
 connection pool.  In addition, you can provide custom keyword arguments using
 the ``CONNECTION_POOL_CLASS_KWARGS`` option that will be passed into the class
 when it's initialized.
+
+**Default Connection Pool:** ``redis.ConnectionPool``
 
 .. code:: python
 
@@ -223,6 +270,7 @@ are serializer using json, msgpack, and yaml. Not all serializers can handle
 Python objects, so they are limited to primitive data types.
 
 
+**Default Serializer:** ``redis_cache.serializers.PickleSerializer``
 
 .. code:: python
 
@@ -250,6 +298,9 @@ initialize the compressor class.
 The default compressor is ``NoopCompressor`` which does not compress your data.
 However, if you want to compress your data, you can use one of the included
 compressor classes:
+
+
+**Default Compressor:** ``redis_cache.compressors.NoopCompressor``
 
 .. code:: python
 
