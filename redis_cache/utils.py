@@ -1,12 +1,16 @@
 import warnings
 
 from django.core.exceptions import ImproperlyConfigured
-from django.utils.importlib import import_module
 from redis.connection import SSLConnection
 
 from redis_cache.compat import (
     smart_text, python_2_unicode_compatible, parse_qs, urlparse
 )
+
+try:
+    import importlib
+except ImportError:
+    from django.utils import importlib
 
 try:
     basestring
@@ -53,7 +57,7 @@ def get_servers(location):
 def import_class(path):
     module_name, class_name = path.rsplit('.', 1)
     try:
-        module = import_module(module_name)
+        module = importlib.import_module(module_name)
     except ImportError:
         raise ImproperlyConfigured('Could not find module "%s"' % module_name)
     else:
