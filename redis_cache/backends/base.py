@@ -389,18 +389,28 @@ class BaseRedisCache(BaseCache):
         if not callable(func):
             raise Exception("Must pass in a callable")
 
-        timeout = self.get_timeout(timeout)
+        value = self.get(key._original_key)
 
-        dogpile_lock_key = "_lock" + key._versioned_key
-        dogpile_lock = client.get(dogpile_lock_key)
+        if value is None:
 
-        if dogpile_lock is None:
-            self.set(dogpile_lock_key, 0, None)
-            value = func()
-            self._set(client, key, self.prep_value(value), None)
-            self._set(client, dogpile_lock_key, 0, timeout)
-        else:
-            value = self.get(key._original_key)
+            dogpile_lock_key = "_lock" + key._versioned_key
+            dogpile_lock = client.get(dogpile_lock_key)
+
+            if dogpile_lock is None:
+                # Set the dogpile lock.
+                self._set(client, dogpile_lock_key, 0, None)
+
+                # calculate value of `func`.
+                try:
+                    value = func()
+                finally:
+                    # Regardless of error, release the dogpile lock.
+                    client.expire(dogpile_lock_key, -1)
+
+                timeout = self.get_timeout(timeout)
+
+                # Set value of `func` and set timeout
+                self._set(client, key, self.prep_value(value), timeout)
 
         return value
 
