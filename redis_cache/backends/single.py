@@ -34,7 +34,8 @@ class RedisCache(BaseRedisCache):
     def delete_many(self, keys, version=None):
         """Remove multiple keys at once."""
         versioned_keys = self.make_keys(keys, version=version)
-        self._delete_many(self.master_client, versioned_keys)
+        if versioned_keys:
+            self._delete_many(self.master_client, versioned_keys)
 
     def clear(self, version=None):
         """Flush cache keys.
