@@ -6,7 +6,7 @@ class RedisDummyCache(DummyCache):
         return 0
 
     def delete_pattern(self, pattern, version=None):
-        raise NotImplementedError
+        return None
 
     def get_or_set(self, key, func, timeout=None):
         if not callable(func):
@@ -15,7 +15,7 @@ class RedisDummyCache(DummyCache):
         return func()
 
     def reinsert_keys(self):
-        raise NotImplementedError
+        return None
 
     def persist(self, key):
         return True
