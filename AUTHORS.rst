@@ -17,4 +17,5 @@ wtracyliu / wtracyliu <https://github.com/wtracyliu>
 Florent Messa / thoas <https://github.com/thoas>
 Markus Kaiserswerth / mkai <https://github.com/mkai>
 Michael Lindemuth / mlindemu <https://github.com/mlindemu>
+John Furr / gnulnx <https://github.com/gnulnx>
 Christian Pedersen / chripede <https://github.com/chripede>

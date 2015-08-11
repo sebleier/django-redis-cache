@@ -358,6 +358,8 @@ class BaseRedisTestCase(SetupMixin):
         self.assertIsNone(self.cache.get("key1"))
         self.assertIsNone(self.cache.get("key2"))
         self.assertEqual(self.cache.get("key3"), "ham")
+        # Test that passing an empty list fails silently
+        self.cache.delete_many([])
 
     def test_clear(self):
         # The cache can be emptied using clear
