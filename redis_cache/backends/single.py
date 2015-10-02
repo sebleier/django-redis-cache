@@ -60,7 +60,7 @@ class RedisCache(BaseRedisCache):
         If timeout is given, that timeout will be used for the key; otherwise
         the default cache timeout will be used.
         """
-        versioned_keys = self.make_keys(data.keys())
+        versioned_keys = self.make_keys(data.keys(), version=version)
         if timeout is None:
             new_data = {}
             for key in versioned_keys:
