@@ -349,6 +349,11 @@ class BaseRedisTestCase(SetupMixin):
         self.assertIsNone(self.cache.get("key1"))
         self.assertIsNone(self.cache.get("key2"))
 
+    def test_set_many_version(self):
+        self.cache.set_many({"key1": "spam", "key2": "eggs"}, version=2)
+        self.assertEqual(self.cache.get("key1", version=2), "spam")
+        self.assertEqual(self.cache.get("key2", version=2), "eggs")
+
     def test_delete_many(self):
         # Multiple keys can be deleted using delete_many
         self.cache.set("key1", "spam")
