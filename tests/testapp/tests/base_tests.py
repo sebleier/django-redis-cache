@@ -176,6 +176,9 @@ class BaseRedisTestCase(SetupMixin):
         self.assertEqual(self.cache.get_many(['a', 'c', 'd']), {'a': 'a', 'c': 'c', 'd': 'd'})
         self.assertEqual(self.cache.get_many(['a', 'b', 'e']), {'a': 'a', 'b': 'b'})
 
+    def test_get_many_works_with_empty_keys_array(self):
+        self.assertEqual(self.cache.get_many([]), {})
+
     def test_get_many_with_manual_integer_insertion(self):
         keys = ['a', 'b', 'c', 'd']
         for i, key in enumerate(keys):
@@ -341,6 +344,11 @@ class BaseRedisTestCase(SetupMixin):
         self.cache.set_many({"key1": "spam", "key2": "eggs"})
         self.assertEqual(self.cache.get("key1"), "spam")
         self.assertEqual(self.cache.get("key2"), "eggs")
+
+    def test_set_many_works_with_empty_dict(self):
+        # This test passes if no exception is raised
+        self.cache.set_many({})
+        self.cache.set_many({}, version=2)
 
     def test_set_many_expiration(self):
         # set_many takes a second ``timeout`` parameter
