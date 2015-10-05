@@ -302,12 +302,14 @@ class BaseRedisCache(BaseCache):
         recovered_data = {}
         map_keys = dict(zip(versioned_keys, original_keys))
 
-        results = client.mget(versioned_keys)
+        # Only try to mget if we actually received any keys to get
+        if map_keys:
+            results = client.mget(versioned_keys)
 
-        for key, value in zip(versioned_keys, results):
-            if value is None:
-                continue
-            recovered_data[map_keys[key]] = self.get_value(value)
+            for key, value in zip(versioned_keys, results):
+                if value is None:
+                    continue
+                recovered_data[map_keys[key]] = self.get_value(value)
 
         return recovered_data
 
