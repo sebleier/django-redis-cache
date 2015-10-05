@@ -318,6 +318,9 @@ class BaseRedisCache(BaseCache):
         raise NotImplementedError
 
     def _set_many(self, client, data):
+        # Only call mset if there actually is some data to save
+        if not data:
+            return True
         return client.mset(data)
 
     def set_many(self, data, timeout=DEFAULT_TIMEOUT, version=None):
