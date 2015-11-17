@@ -1,6 +1,7 @@
 from collections import defaultdict
 
 from redis_cache.backends.base import BaseRedisCache
+from redis_cache.compat import DEFAULT_TIMEOUT
 from redis_cache.sharder import HashRing
 
 
@@ -71,7 +72,7 @@ class ShardedRedisCache(BaseRedisCache):
             )
         return data
 
-    def set_many(self, data, timeout=None, version=None):
+    def set_many(self, data, timeout=DEFAULT_TIMEOUT, version=None):
         """
         Set a bunch of values in the cache at once from a dict of key/value
         pairs. This is much more efficient than calling set() multiple times.
@@ -79,6 +80,8 @@ class ShardedRedisCache(BaseRedisCache):
         If timeout is given, that timeout will be used for the key; otherwise
         the default cache timeout will be used.
         """
+        timeout = self.get_timeout(timeout)
+
         clients = self.shard(data.keys(), write=True, version=version)
 
         if timeout is None:
