@@ -1,3 +1,5 @@
+from redis_cache.compat import DEFAULT_TIMEOUT
+
 try:
     import cPickle as pickle
 except ImportError:
@@ -52,7 +54,7 @@ class RedisCache(BaseRedisCache):
         versioned_keys = self.make_keys(keys, version=version)
         return self._get_many(self.master_client, keys, versioned_keys=versioned_keys)
 
-    def set_many(self, data, timeout=None, version=None):
+    def set_many(self, data, timeout=DEFAULT_TIMEOUT, version=None):
         """
         Set a bunch of values in the cache at once from a dict of key/value
         pairs. This is much more efficient than calling set() multiple times.
@@ -60,6 +62,8 @@ class RedisCache(BaseRedisCache):
         If timeout is given, that timeout will be used for the key; otherwise
         the default cache timeout will be used.
         """
+        timeout = self.get_timeout(timeout)
+
         versioned_keys = self.make_keys(data.keys(), version=version)
         if timeout is None:
             new_data = {}
