@@ -70,3 +70,14 @@ class YAMLSerializer(BaseSerializer):
 
     def deserialize(self, value):
         return yaml.load(value)
+
+class DummySerializer(BaseSerializer):
+
+    def __init__(self, **kwargs):
+        super(DummySerializer, self).__init__(**kwargs)
+
+    def serialize(self, value):
+        return value
+
+    def deserialize(self, value):
+        return value
