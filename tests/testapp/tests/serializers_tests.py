@@ -7,8 +7,6 @@ try:
 except ImportError:
     from django.test.utils import override_settings
 
-from redis_cache.connection import pool
-
 from tests.testapp.tests.base_tests import SetupMixin
 
 
@@ -84,7 +82,28 @@ class BaseSerializerTestCase(SetupMixin, TestCase):
             'DB': 1,
             'PASSWORD': 'yadayada',
             'PARSER_CLASS': 'redis.connection.HiredisParser',
-            'PICKLE_VERSION': -1,
+            'PICKLE_VERSION': 1,
+            'SERIALIZER_CLASS': 'redis_cache.serializers.PickleSerializer'
+        },
+    },
+})
+class PickleSerializerTestCase(BaseSerializerTestCase):
+    converts_tuple_to_list = False
+    serializes_objects = True
+
+    def test_pickle_version(self):
+        self.assertEqual(self.cache.serializer.pickle_version, 1)
+
+
+@override_settings(CACHES={
+    'default': {
+        'BACKEND': 'redis_cache.RedisCache',
+        'LOCATION': LOCATION,
+        'OPTIONS': {
+            'DB': 1,
+            'PASSWORD': 'yadayada',
+            'PARSER_CLASS': 'redis.connection.HiredisParser',
+            'PICKLE_VERSION': 1,
             'SERIALIZER_CLASS': 'redis_cache.serializers.JSONSerializer'
         },
     },
