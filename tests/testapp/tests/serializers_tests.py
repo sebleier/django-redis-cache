@@ -104,6 +104,30 @@ class PickleSerializerTestCase(BaseSerializerTestCase):
             'PASSWORD': 'yadayada',
             'PARSER_CLASS': 'redis.connection.HiredisParser',
             'PICKLE_VERSION': 1,
+            'SERIALIZER_CLASS': 'redis_cache.serializers.PickleSerializer',
+            'SERIALIZER_CLASS_KWARGS': {
+                'pickle_version': 2
+            }
+        },
+    },
+})
+class PickleSerializerTestCase2(BaseSerializerTestCase):
+    converts_tuple_to_list = False
+    serializes_objects = True
+
+    def test_serializer_pickle_version_takes_precedence(self):
+        self.assertEqual(self.cache.serializer.pickle_version, 2)
+
+
+@override_settings(CACHES={
+    'default': {
+        'BACKEND': 'redis_cache.RedisCache',
+        'LOCATION': LOCATION,
+        'OPTIONS': {
+            'DB': 1,
+            'PASSWORD': 'yadayada',
+            'PARSER_CLASS': 'redis.connection.HiredisParser',
+            'PICKLE_VERSION': 1,
             'SERIALIZER_CLASS': 'redis_cache.serializers.JSONSerializer'
         },
     },
