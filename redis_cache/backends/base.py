@@ -133,7 +133,17 @@ class BaseRedisCache(BaseCache):
         return import_class(serializer_class)
 
     def get_serializer_class_kwargs(self):
-        return self.options.get('SERIALIZER_CLASS_KWARGS', {})
+        kwargs = self.options.get('SERIALIZER_CLASS_KWARGS', {})
+        serializer_class = self.options.get(
+            'SERIALIZER_CLASS',
+            'redis_cache.serializers.PickleSerializer'
+        )
+        if serializer_class == 'redis_cache.serializers.PickleSerializer':
+            kwargs['pickle_version'] = kwargs.get(
+                'pickle_version',
+                self.pickle_version
+            )
+        return kwargs
 
     def get_compressor_class(self):
         compressor_class = self.options.get(
