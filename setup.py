@@ -8,7 +8,7 @@ setup(
     version="1.6.5",
     packages=["redis_cache", "redis_cache.backends"],
     description="Redis Cache Backend for Django",
-    install_requires=['redis>=2.10.3'],
+    install_requires=['redis>=2.10.3', 'redis-py-cluster>=1.1.0'],
     classifiers=[
         "Programming Language :: Python",
         "Programming Language :: Python :: 2.6",

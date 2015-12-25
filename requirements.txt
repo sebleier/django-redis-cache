@@ -1,1 +1,2 @@
 redis>=2.10.3
+redis-py-cluster>=1.1.0
