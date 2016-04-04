@@ -392,8 +392,8 @@ class BaseRedisCache(BaseCache):
         return 0
 
     def _delete_pattern(self, client, pattern):
-        keys = client.keys(pattern)
-        if len(keys):
+        cursor, keys = client.scan(match=pattern)
+        while cursor:
             client.delete(*keys)
 
     def delete_pattern(self, pattern, version=None):
