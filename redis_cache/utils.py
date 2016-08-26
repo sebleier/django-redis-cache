@@ -1,3 +1,4 @@
+import importlib
 import warnings
 
 from django.core.exceptions import ImproperlyConfigured
@@ -6,11 +7,6 @@ from redis.connection import SSLConnection
 from redis_cache.compat import (
     smart_text, python_2_unicode_compatible, parse_qs, urlparse
 )
-
-try:
-    import importlib
-except ImportError:
-    from django.utils import importlib
 
 try:
     basestring
