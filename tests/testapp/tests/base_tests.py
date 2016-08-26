@@ -5,7 +5,6 @@ from hashlib import sha1
 import os
 import subprocess
 import time
-import unittest
 
 
 try:
@@ -15,17 +14,13 @@ except ImportError:
 
 from django.core.cache import get_cache
 from django.core.exceptions import ImproperlyConfigured
-from django.test import TestCase
-try:
-    from django.test import override_settings
-except ImportError:
-    from django.test.utils import override_settings
+from django.test import TestCase, override_settings
 
 import redis
 
 from tests.testapp.models import Poll, expensive_calculation
 from redis_cache.cache import RedisCache, pool
-from redis_cache.compat import DEFAULT_TIMEOUT, smart_bytes
+from redis_cache.compat import smart_bytes
 from redis_cache.utils import get_servers, parse_connection_kwargs
 
 
@@ -294,7 +289,6 @@ class BaseRedisTestCase(SetupMixin):
         self.assertEqual(self.cache.get("expire2"), "newvalue")
         self.assertEqual("expire3" in self.cache, False)
 
-    @unittest.skipIf(DEFAULT_TIMEOUT is None, "Version of django doesn't support indefinite timeouts.")
     def test_set_expiration_timeout_None(self):
         key, value = 'key', 'value'
         self.cache.set(key, value, timeout=None)
@@ -558,7 +552,6 @@ class BaseRedisTestCase(SetupMixin):
         ttl = self.cache.ttl('a')
         self.assertAlmostEqual(ttl, 10)
 
-    @unittest.skipIf(DEFAULT_TIMEOUT is None, "Version of django doesn't support indefinite timeouts.")
     def test_ttl_no_expiry(self):
         self.cache.set('a', 'a', timeout=None)
         ttl = self.cache.ttl('a')

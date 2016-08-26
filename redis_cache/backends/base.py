@@ -1,4 +1,6 @@
-from django.core.cache.backends.base import BaseCache, InvalidCacheBackendError
+from django.core.cache.backends.base import (
+    BaseCache, DEFAULT_TIMEOUT, InvalidCacheBackendError,
+)
 from django.core.exceptions import ImproperlyConfigured
 
 try:
@@ -10,7 +12,6 @@ except ImportError:
 
 from redis.connection import DefaultParser
 
-from redis_cache.compat import DEFAULT_TIMEOUT
 from redis_cache.connection import pool
 from redis_cache.utils import (
     CacheKey, get_servers, parse_connection_kwargs, import_class

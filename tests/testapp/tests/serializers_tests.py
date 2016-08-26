@@ -1,11 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
-from django.test import TestCase
-try:
-    from django.test import override_settings
-except ImportError:
-    from django.test.utils import override_settings
+from django.test import TestCase, override_settings
 
 from tests.testapp.tests.base_tests import SetupMixin
 
@@ -171,4 +167,3 @@ class MSGPackSerializerTestCase(BaseSerializerTestCase):
 class YAMLSerializerTestCase(BaseSerializerTestCase):
     converts_tuple_to_list = False
     serializes_objects = True
-

@@ -1,11 +1,7 @@
 # -*- coding: utf-8 -*-
 from tests.testapp.tests.base_tests import BaseRedisTestCase
 from tests.testapp.tests.multi_server_tests import MultiServerTests
-try:
-    from django.test import override_settings
-except ImportError:
-    from django.test.utils import override_settings
-from django.test import TestCase
+from django.test import TestCase, override_settings
 
 from redis_cache.cache import ImproperlyConfigured
 from redis.connection import UnixDomainSocketConnection
