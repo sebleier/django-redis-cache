@@ -3,12 +3,10 @@ import warnings
 
 from django.core.exceptions import ImproperlyConfigured
 from django.utils import six
-from django.utils.encoding import python_2_unicode_compatible
+from django.utils.encoding import force_text, python_2_unicode_compatible
 from django.utils.six.moves.urllib.parse import parse_qs, urlparse
 
 from redis.connection import SSLConnection
-
-from redis_cache.compat import smart_text
 
 
 @python_2_unicode_compatible
@@ -24,7 +22,7 @@ class CacheKey(object):
         return self._versioned_key == other
 
     def __str__(self):
-        return smart_text(self._versioned_key)
+        return force_text(self._versioned_key)
 
     def __hash__(self):
         return hash(self._versioned_key)

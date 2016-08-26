@@ -15,12 +15,12 @@ except ImportError:
 from django.core.cache import get_cache
 from django.core.exceptions import ImproperlyConfigured
 from django.test import TestCase, override_settings
+from django.utils.encoding import force_bytes
 
 import redis
 
 from tests.testapp.models import Poll, expensive_calculation
 from redis_cache.cache import RedisCache, pool
-from redis_cache.compat import smart_bytes
 from redis_cache.utils import get_servers, parse_connection_kwargs
 
 
@@ -468,7 +468,7 @@ class BaseRedisTestCase(SetupMixin):
     def test_reinsert_keys(self):
         self.cache._pickle_version = 0
         for i in range(2000):
-            s = sha1(smart_bytes(i)).hexdigest()
+            s = sha1(force_bytes(i)).hexdigest()
             self.cache.set(s, self.cache)
         self.cache._pickle_version = -1
         self.cache.reinsert_keys()

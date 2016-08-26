@@ -15,7 +15,7 @@ try:
 except ImportError:
     pass
 
-from redis_cache.compat import smart_bytes, smart_text
+from django.utils.encoding import force_bytes, force_text
 
 
 class BaseSerializer(object):
@@ -39,7 +39,7 @@ class PickleSerializer(object):
         return pickle.dumps(value, self.pickle_version)
 
     def deserialize(self, value):
-        return pickle.loads(smart_bytes(value))
+        return pickle.loads(force_bytes(value))
 
 
 class JSONSerializer(BaseSerializer):
@@ -48,10 +48,10 @@ class JSONSerializer(BaseSerializer):
         super(JSONSerializer, self).__init__(**kwargs)
 
     def serialize(self, value):
-        return smart_bytes(json.dumps(value))
+        return force_bytes(json.dumps(value))
 
     def deserialize(self, value):
-        return json.loads(smart_text(value))
+        return json.loads(force_text(value))
 
 
 class MSGPackSerializer(BaseSerializer):

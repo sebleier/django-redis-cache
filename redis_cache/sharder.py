@@ -1,6 +1,6 @@
 from bisect import insort, bisect
 import hashlib
-from redis_cache.compat import smart_text
+from django.utils.encoding import force_text
 
 
 DIGITS = 8
@@ -17,8 +17,8 @@ class Node(object):
         self._node = node
         self._i = i
         key = "{0}:{1}".format(
-            smart_text(i),
-            smart_text(self._node),
+            force_text(i),
+            force_text(self._node),
         )
         self._position = get_slot(key)
 
@@ -52,5 +52,5 @@ class HashRing(object):
                 del self._nodes[n - i - 1]
 
     def get_node(self, key):
-        i = bisect(self._nodes, get_slot(smart_text(key))) - 1
+        i = bisect(self._nodes, get_slot(force_text(key))) - 1
         return self._nodes[i]._node
