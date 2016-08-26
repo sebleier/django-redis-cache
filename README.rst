@@ -24,7 +24,7 @@ Changelog
 1.7.0
 -----
 
-* Drops support for Django < 1.8.
+* Drops support for Django < 1.8 and Python 3.2.
 
 1.5.0
 -----
