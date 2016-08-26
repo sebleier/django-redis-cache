@@ -25,6 +25,7 @@ Changelog
 -----
 
 * Drops support for Django < 1.8 and Python 3.2.
+* Confirms support for Django 1.9 and 1.10.
 
 1.5.0
 -----

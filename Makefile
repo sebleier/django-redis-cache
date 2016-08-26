@@ -1,13 +1,13 @@
 SHELL := /bin/bash
 
 PACKAGE_NAME=redis_cache
-DJANGO_VERSION?=1.7
+DJANGO_VERSION?=>=1.10a1,<1.11
 
 .PHONY: install_requirements
 install_requirements: requirements*.txt
 	pip install -r requirements.txt
 	pip install -r requirements-dev.txt
-	pip install Django==$(DJANGO_VERSION)
+	pip install 'Django$(DJANGO_VERSION)'
 
 .PHONY: clean
 clean:

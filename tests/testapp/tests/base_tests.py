@@ -12,7 +12,7 @@ try:
 except ImportError:
     import pickle
 
-from django.core.cache import get_cache
+from django.core.cache import caches
 from django.core.exceptions import ImproperlyConfigured
 from django.test import TestCase, override_settings
 from django.utils.encoding import force_bytes
@@ -122,6 +122,8 @@ class SetupMixin(object):
         self.cache = self.get_cache()
 
     def tearDown(self):
+        # clear caches to allow @override_settings(CACHES=...) to work.
+        caches._caches.caches = {}
         # Sometimes it will be necessary to skip this method because we need to
         # test default initialization and that may be using a different port
         # than the test redis server.
@@ -134,7 +136,7 @@ class SetupMixin(object):
         pool.reset()
 
     def get_cache(self, backend=None):
-        return get_cache(backend or 'default')
+        return caches[backend or 'default']
 
 
 class BaseRedisTestCase(SetupMixin):
@@ -514,7 +516,7 @@ class BaseRedisTestCase(SetupMixin):
 
     def test_max_connections(self):
         pool._connection_pools = {}
-        cache = get_cache('default')
+        cache = caches['default']
 
         def noop(*args, **kwargs):
             pass
@@ -620,7 +622,7 @@ class ConfigurationTestCase(SetupMixin, TestCase):
     )
     def test_bad_parser_import(self):
         with self.assertRaises(ImproperlyConfigured):
-            get_cache('default')
+            caches['default']
 
 
 @override_settings(CACHES={
