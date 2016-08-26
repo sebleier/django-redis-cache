@@ -2,15 +2,13 @@ import importlib
 import warnings
 
 from django.core.exceptions import ImproperlyConfigured
+from django.utils import six
 from django.utils.encoding import python_2_unicode_compatible
+from django.utils.six.moves.urllib.parse import parse_qs, urlparse
+
 from redis.connection import SSLConnection
 
-from redis_cache.compat import smart_text, parse_qs, urlparse
-
-try:
-    basestring
-except NameError:
-    basestring = str
+from redis_cache.compat import smart_text
 
 
 @python_2_unicode_compatible
@@ -38,7 +36,7 @@ def get_servers(location):
     """Returns a list of servers given the server argument passed in from
     Django.
     """
-    if isinstance(location, basestring):
+    if isinstance(location, six.string_types):
         servers = location.split(',')
     elif hasattr(location, '__iter__'):
         servers = location
