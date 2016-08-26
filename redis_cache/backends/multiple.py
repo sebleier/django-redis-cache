@@ -1,7 +1,8 @@
 from collections import defaultdict
 
+from django.core.cache.backends.base import DEFAULT_TIMEOUT
+
 from redis_cache.backends.base import BaseRedisCache
-from redis_cache.compat import DEFAULT_TIMEOUT
 from redis_cache.sharder import HashRing
 
 

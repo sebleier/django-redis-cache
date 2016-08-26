@@ -4,13 +4,7 @@ from __future__ import unicode_literals
 from hashlib import sha1
 import os
 import subprocess
-import sys
 import time
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
 
 
 try:
@@ -20,17 +14,13 @@ except ImportError:
 
 from django.core.cache import get_cache
 from django.core.exceptions import ImproperlyConfigured
-from django.test import TestCase
-try:
-    from django.test import override_settings
-except ImportError:
-    from django.test.utils import override_settings
+from django.test import TestCase, override_settings
+from django.utils.encoding import force_bytes
 
 import redis
 
 from tests.testapp.models import Poll, expensive_calculation
 from redis_cache.cache import RedisCache, pool
-from redis_cache.compat import DEFAULT_TIMEOUT, smart_bytes
 from redis_cache.utils import get_servers, parse_connection_kwargs
 
 
@@ -299,7 +289,6 @@ class BaseRedisTestCase(SetupMixin):
         self.assertEqual(self.cache.get("expire2"), "newvalue")
         self.assertEqual("expire3" in self.cache, False)
 
-    @unittest.skipIf(DEFAULT_TIMEOUT is None, "Version of django doesn't support indefinite timeouts.")
     def test_set_expiration_timeout_None(self):
         key, value = 'key', 'value'
         self.cache.set(key, value, timeout=None)
@@ -479,7 +468,7 @@ class BaseRedisTestCase(SetupMixin):
     def test_reinsert_keys(self):
         self.cache._pickle_version = 0
         for i in range(2000):
-            s = sha1(smart_bytes(i)).hexdigest()
+            s = sha1(force_bytes(i)).hexdigest()
             self.cache.set(s, self.cache)
         self.cache._pickle_version = -1
         self.cache.reinsert_keys()
@@ -563,7 +552,6 @@ class BaseRedisTestCase(SetupMixin):
         ttl = self.cache.ttl('a')
         self.assertAlmostEqual(ttl, 10)
 
-    @unittest.skipIf(DEFAULT_TIMEOUT is None, "Version of django doesn't support indefinite timeouts.")
     def test_ttl_no_expiry(self):
         self.cache.set('a', 'a', timeout=None)
         ttl = self.cache.ttl('a')

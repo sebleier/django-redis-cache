@@ -1,21 +1,12 @@
+import importlib
 import warnings
 
 from django.core.exceptions import ImproperlyConfigured
+from django.utils import six
+from django.utils.encoding import force_text, python_2_unicode_compatible
+from django.utils.six.moves.urllib.parse import parse_qs, urlparse
+
 from redis.connection import SSLConnection
-
-from redis_cache.compat import (
-    smart_text, python_2_unicode_compatible, parse_qs, urlparse
-)
-
-try:
-    import importlib
-except ImportError:
-    from django.utils import importlib
-
-try:
-    basestring
-except NameError:
-    basestring = str
 
 
 @python_2_unicode_compatible
@@ -30,20 +21,20 @@ class CacheKey(object):
     def __eq__(self, other):
         return self._versioned_key == other
 
-    def __unicode__(self):
-        return smart_text(self._versioned_key)
+    def __str__(self):
+        return force_text(self._versioned_key)
 
     def __hash__(self):
         return hash(self._versioned_key)
 
-    __repr__ = __str__ = __unicode__
+    __repr__ = __str__
 
 
 def get_servers(location):
     """Returns a list of servers given the server argument passed in from
     Django.
     """
-    if isinstance(location, basestring):
+    if isinstance(location, six.string_types):
         servers = location.split(',')
     elif hasattr(location, '__iter__'):
         servers = location

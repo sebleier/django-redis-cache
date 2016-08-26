@@ -11,15 +11,15 @@ setup(
     install_requires=['redis>=2.10.3'],
     classifiers=[
         "Programming Language :: Python",
-        "Programming Language :: Python :: 2.6",
         "Programming Language :: Python :: 2.7",
-        "Programming Language :: Python :: 3.2",
         "Programming Language :: Python :: 3.3",
         "Programming Language :: Python :: 3.4",
+        "Programming Language :: Python :: 3.5",
         "Operating System :: OS Independent",
         "Topic :: Software Development :: Libraries",
         "Topic :: Utilities",
         "Environment :: Web Environment",
         "Framework :: Django",
+        "Framework :: Django :: 1.8",
     ],
 )

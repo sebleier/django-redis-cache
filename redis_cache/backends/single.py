@@ -1,10 +1,10 @@
-from redis_cache.compat import DEFAULT_TIMEOUT
-
 try:
     import cPickle as pickle
 except ImportError:
     import pickle
 import random
+
+from django.core.cache.backends.base import DEFAULT_TIMEOUT
 
 from redis_cache.backends.base import BaseRedisCache
 
