@@ -491,22 +491,23 @@ class BaseRedisTestCase(SetupMixin):
 
         expensive_function.num_calls = 0
         self.assertEqual(expensive_function.num_calls, 0)
-        value = self.cache.get_or_set('a', expensive_function, 1)
+        value = self.cache.get_or_set('a', expensive_function, 1, version=2)
         self.assertEqual(expensive_function.num_calls, 1)
         self.assertEqual(value, 42)
 
-        value = self.cache.get_or_set('a', expensive_function, 1)
+        value = self.cache.get_or_set('a', expensive_function, 1, version=2)
         self.assertEqual(expensive_function.num_calls, 1)
         self.assertEqual(value, 42)
 
-        value = self.cache.get_or_set('a', expensive_function, 1)
+        value = self.cache.get_or_set('a', expensive_function, 1, version=2)
         self.assertEqual(expensive_function.num_calls, 1)
         self.assertEqual(value, 42)
 
         time.sleep(2)
-        value = self.cache.get_or_set('a', expensive_function, 1)
+        value = self.cache.get_or_set('a', expensive_function, 1, version=2)
         self.assertEqual(expensive_function.num_calls, 2)
         self.assertEqual(value, 42)
+
 
     def assertMaxConnection(self, cache, max_num):
         for client in cache.clients.values():

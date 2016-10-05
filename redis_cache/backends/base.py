@@ -405,7 +405,7 @@ class BaseRedisCache(BaseCache):
         if not callable(func):
             raise Exception("Must pass in a callable")
 
-        value = self.get(key._original_key)
+        value = self.get(key)
 
         if value is None:
 
