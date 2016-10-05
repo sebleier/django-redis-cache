@@ -28,8 +28,8 @@ def get_client(write=False):
         @wraps(method)
         def wrapped(self, key, *args, **kwargs):
             version = kwargs.pop('version', None)
-            client = self.get_client(key, write=write)
             key = self.make_key(key, version=version)
+            client = self.get_client(key, write=write)
             return method(self, client, key, *args, **kwargs)
 
         return wrapped
