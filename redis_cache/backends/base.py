@@ -28,8 +28,8 @@ def get_client(write=False):
         @wraps(method)
         def wrapped(self, key, *args, **kwargs):
             version = kwargs.pop('version', None)
-            key = self.make_key(key, version=version)
             client = self.get_client(key, write=write)
+            key = self.make_key(key, version=version)
             return method(self, client, key, *args, **kwargs)
 
         return wrapped
@@ -355,8 +355,12 @@ class BaseRedisCache(BaseCache):
             value = client.incr(key, delta)
         except redis.ResponseError:
             key = key._original_key
-            value = self.get(key) + delta
-            self.set(key, value, timeout=None)
+
+            # inlined set.get to keep client consistent
+            value = self.get_value(client.get(key))
+
+            # inlined self.set to keep client consistent
+            self._set(client, key, self.prep_value(value), timeout=None)
         return value
 
     def _incr_version(self, client, old, new, delta, version):
@@ -405,7 +409,8 @@ class BaseRedisCache(BaseCache):
         if not callable(func):
             raise Exception("Must pass in a callable")
 
-        value = self.get(key)
+        # inlined set.get to keep client consistent
+        value = client.get(key)
 
         if value is None:
 
@@ -427,6 +432,8 @@ class BaseRedisCache(BaseCache):
 
                 # Set value of `func` and set timeout
                 self._set(client, key, self.prep_value(value), timeout)
+        else:
+            value = self.get_value(value)
 
         return value
 
