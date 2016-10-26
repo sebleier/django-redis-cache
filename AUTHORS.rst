@@ -20,3 +20,4 @@
 | John Furr / gnulnx <https://github.com/gnulnx>
 | Christian Pedersen / chripede <https://github.com/chripede>
 | Joona Pääkkönen / paksu <https://github.com/paksu>
+| Tim Graham / timgraham <https://github.com/timgraham>
