@@ -1,5 +1,6 @@
 import time
 
+from django.core.cache import caches
 from django.test import TestCase, override_settings
 
 from redis_cache.connection import pool
@@ -35,6 +36,9 @@ class MasterSlaveTestCase(SetupMixin, TestCase):
         pool.reset()
 
     def test_master_client(self):
+        # Reset the caches at the beginning of the test.
+        caches._caches.caches = {}
+
         cache = self.get_cache()
         client = cache.master_client
         self.assertEqual(
