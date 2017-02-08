@@ -21,11 +21,68 @@ Docs can be found at http://django-redis-cache.readthedocs.org/en/latest/.
 Changelog
 =========
 
+1.7.1
+-----
+
+* Confirms support for Django 1.9 and 1.10.
+
+
 1.7.0
 -----
 
 * Drops support for Django < 1.8 and Python 3.2.
-* Confirms support for Django 1.9 and 1.10.
+
+1.6.4
+-----
+
+* Adds a default timeout to ``set_many``.
+
+1.6.3
+-----
+
+* Fixes ``get_many`` and ``set_many`` to work with empty parameters.
+
+1.6.2
+-----
+
+* Fixes ``set_many`` to set cache key version.
+
+1.6.1
+-----
+
+* Allows ``delete_many`` to fail silently with an empty list.
+
+1.6.0
+-----
+
+* Adds dummy cache.
+
+1.5.5
+-----
+
+* Cleans up ``get_or_set``.
+
+1.5.4
+-----
+
+* Updates importlib import statement for better Django 1.9 compatibility.
+
+1.5.3
+-----
+
+* Adds initial documentation.
+* Updates function signatures to use ``DEFAULT_TIMEOUT``.
+* Fixes issue with redis urls and unix_socket_path key error.
+
+1.5.2
+-----
+
+* Adds ``SOCKET_CONNECT_TIMEOUT`` option.
+
+1.5.1
+-----
+
+* Refactors class importing.
 
 1.5.0
 -----

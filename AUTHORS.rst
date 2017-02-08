@@ -19,5 +19,6 @@
 | Michael Lindemuth / mlindemu <https://github.com/mlindemu>
 | John Furr / gnulnx <https://github.com/gnulnx>
 | Christian Pedersen / chripede <https://github.com/chripede>
+| Martey Dodoo / martey <https://github.com/martey>
 | Joona Pääkkönen / paksu <https://github.com/paksu>
 | Tim Graham / timgraham <https://github.com/timgraham>
