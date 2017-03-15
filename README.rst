@@ -207,6 +207,7 @@ Requirements
                 },
                 'MAX_CONNECTIONS': 1000,
                 'PICKLE_VERSION': -1,
+                'DOGPILE_TIMEOUT': 30,
             },
         },
     }
