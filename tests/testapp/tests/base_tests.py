@@ -437,7 +437,7 @@ class BaseRedisTestCase(SetupMixin):
         }
         self.cache.set_many(data)
         data = self.cache.get_pattern('a*a')
-        self.assertEquals(len(data.keys()), 3)
+        self.assertEquals(len(data.keys()), 2)
 
     def test_delete_pattern(self):
         data = {
