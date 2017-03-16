@@ -106,7 +106,12 @@ class MasterSlaveTestCase(SetupMixin, TestCase):
         for client in self.cache.clients.values():
             self.assertEqual(len(client.keys('*')), 0)
 
-    def test_client_list(self):
+    def test_master_in_client_list_by_default(self):
+        cache = self.get_cache()
+        master = cache.get_master_client()
+        self.assertIn(master, cache.client_list)
+
+    def test_master_not_in_client_list_if_master_write_only(self):
         cache = self.get_cache('master_write_only')
         master = cache.get_master_client()
         self.assertNotIn(master, cache.client_list)
