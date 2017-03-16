@@ -124,6 +124,13 @@ class ShardedRedisCache(BaseRedisCache):
         for client in self.clients.values():
             self._delete_pattern(client, pattern)
 
+    def get_pattern(self, pattern, version=None):
+        pattern = self.make_key(pattern, version=version)
+        recovered_data = {}
+        for client in self.clients.values():
+            data.update(self._get_pattern(client, pattern))
+        return recovered_data if recovered_data else None
+
     def reinsert_keys(self):
         """
         Reinsert cache entries using the current pickle protocol version.
