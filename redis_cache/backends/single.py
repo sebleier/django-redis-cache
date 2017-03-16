@@ -95,6 +95,10 @@ class RedisCache(BaseRedisCache):
     # Extra api methods #
     #####################
 
+    def get_pattern(self, pattern, version=None):
+        pattern = self.make_key(pattern, version=version)
+        return self._get_pattern(self.master_client, pattern)
+
     def delete_pattern(self, pattern, version=None):
         pattern = self.make_key(pattern, version=version)
         self._delete_pattern(self.master_client, pattern)
