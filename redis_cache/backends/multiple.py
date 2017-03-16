@@ -128,7 +128,7 @@ class ShardedRedisCache(BaseRedisCache):
         pattern = self.make_key(pattern, version=version)
         recovered_data = {}
         for client in self.clients.values():
-            data.update(self._get_pattern(client, pattern))
+            recovered_data.update(self._get_pattern(client, pattern))
         return recovered_data if recovered_data else None
 
     def reinsert_keys(self):
