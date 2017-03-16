@@ -28,6 +28,18 @@ LOCATIONS = [
             'MASTER_CACHE': MASTER_LOCATION,
         },
     },
+    'master_write_only': {
+        'BACKEND': 'redis_cache.RedisCache',
+        'LOCATION': LOCATIONS,
+        'OPTIONS': {
+            'DB': 1,
+            'PASSWORD': 'yadayada',
+            'PARSER_CLASS': 'redis.connection.HiredisParser',
+            'PICKLE_VERSION': -1,
+            'MASTER_CACHE': MASTER_LOCATION,
+            'MASTER_WRITE_ONLY': True,
+        },
+    },
 })
 class MasterSlaveTestCase(SetupMixin, TestCase):
 
@@ -93,3 +105,8 @@ class MasterSlaveTestCase(SetupMixin, TestCase):
         time.sleep(.2)
         for client in self.cache.clients.values():
             self.assertEqual(len(client.keys('*')), 0)
+
+    def test_client_list(self):
+        cache = self.get_cache('master_write_only')
+        master = cache.get_master_client()
+        self.assertNotIn(master, cache.client_list)

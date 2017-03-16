@@ -21,13 +21,17 @@ class RedisCache(BaseRedisCache):
             client = self.create_client(server)
             self.clients[client.connection_pool.connection_identifier] = client
 
-        self.client_list = self.clients.values()
-        self.master_client = self.get_master_client()
+        self.master_client = master = self.get_master_client()
+        master_write_only = self.options.get('MASTER_WRITE_ONLY', False)
+        self.client_list = list(
+            client for client in self.clients.values()
+            if not (master_write_only and client is master)
+        )
 
     def get_client(self, key, write=False):
         if write and self.master_client is not None:
             return self.master_client
-        return random.choice(list(self.client_list))
+        return random.choice(self.client_list)
 
     ####################
     # Django cache api #
