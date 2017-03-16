@@ -129,6 +129,7 @@ read/write server and secondary servers as read-only.
             'OPTIONS': {
                 'PASSWORD': 'yadayada',
                 'MASTER_CACHE': '127.0.0.1:6379',
+                'MASTER_WRITE_ONLY': False,
                 ...
             },
             ...
