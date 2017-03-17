@@ -23,10 +23,10 @@ class RedisCache(BaseRedisCache):
 
         self.master_client = master = self.get_master_client()
         master_write_only = self.options.get('MASTER_WRITE_ONLY', False)
-        self.client_list = list(
+        self.client_list = [
             client for client in self.clients.values()
             if not (master_write_only and client is master)
-        )
+        ]
 
     def get_client(self, key, write=False):
         if write and self.master_client is not None:
