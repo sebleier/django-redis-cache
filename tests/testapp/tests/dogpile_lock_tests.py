@@ -36,8 +36,7 @@ class GetOrSetThread(threading.Thread):
             except Queue.Empty:
                 break
             else:
-                exc_type, exc_obj, exc_trace = exc_info
-                raise exc_type, exc_obj, exc_trace
+                raise exc_info
 
 
 @override_settings(
