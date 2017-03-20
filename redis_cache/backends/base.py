@@ -280,9 +280,7 @@ class BaseRedisCache(BaseCache):
         """
         timeout = self.get_timeout(timeout)
 
-        result = self._set(client, key, self.prep_value(value), timeout, _add_only=False)
-
-        return result
+        self._set(client, key, self.prep_value(value), timeout, _add_only=False)
 
     @get_client(write=True)
     def delete(self, client, key):
