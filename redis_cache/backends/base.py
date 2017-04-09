@@ -431,7 +431,7 @@ class BaseRedisCache(BaseCache):
         return value
 
     def _reinsert_keys(self, client):
-        keys = client.keys('*')
+        keys = list(client.scan_iter(match='*'))
         for key in keys:
             timeout = client.ttl(key)
             value = self.get_value(client.get(key))
