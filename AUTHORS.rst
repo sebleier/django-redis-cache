@@ -22,3 +22,4 @@
 | Martey Dodoo / martey <https://github.com/martey>
 | Joona Pääkkönen / paksu <https://github.com/paksu>
 | Tim Graham / timgraham <https://github.com/timgraham>
+| Justin Arulnathan / dinie <justin@gizmag.com>
