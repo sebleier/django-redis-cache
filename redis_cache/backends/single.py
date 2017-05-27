@@ -23,10 +23,17 @@ class RedisCache(BaseRedisCache):
 
         self.client_list = self.clients.values()
         self.master_client = self.get_master_client()
+        self.ro_slaves_list = []
+        if self.options.get('MASTER_CACHE_ONLY_FOR_WRITE', False):
+            for identifier, client in self.clients.items():
+                if identifier != self.master_client.connection_pool.connection_identifier:  # noqa: E501
+                    self.ro_slaves_list.append(client)
 
     def get_client(self, key, write=False):
         if write and self.master_client is not None:
             return self.master_client
+        if self.ro_slaves_list:
+            return random.choice(self.ro_slaves_list)
         return random.choice(list(self.client_list))
 
     ####################

@@ -135,7 +135,52 @@ read/write server and secondary servers as read-only.
         }
     }
 
+Additionally if you set ``MASTER_CACHE_ONLY_FOR_WRITE`` to True the primary
+server will be write-only.
 
+**For example:**
+
+Two data centers - DC1 and DC2. Redis master is in DC1, slave in DC2. With
+MASTER_CACHE_ONLY_FOR_WRITE option it's possible to configure application
+instances to write to the master and read from the closer data center.
+
+DC1 configuration:
+
+.. code:: python
+
+    CACHES = {
+        'default': {
+            'LOCATION': [
+                '10.10.0.1:6379',  # Master, DC1
+            ],
+            'OPTIONS': {
+                'PASSWORD': 'yadayada',
+                'MASTER_CACHE': '10.10.0.1:6379',
+                ...
+            },
+            ...
+        }
+    }
+
+DC2 configuration:
+
+.. code:: python
+
+    CACHES = {
+        'default': {
+            'LOCATION': [
+                '10.10.0.1:6379',  # Master, DC1
+                '10.20.0.1:6379',  # Slave, DC2
+            ],
+            'OPTIONS': {
+                'PASSWORD': 'yadayada',
+                'MASTER_CACHE': '10.10.0.1:6379',
+                'MASTER_CACHE_ONLY_FOR_WRITE': True,
+                ...
+            },
+            ...
+        }
+    }
 
 
 Pluggable Parser Classes
