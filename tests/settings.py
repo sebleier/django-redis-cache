@@ -1,3 +1,5 @@
+import os
+
 DEBUG = True
 
 DATABASES = {
@@ -33,3 +35,5 @@ CACHES = {
 }
 TEST_RUNNER = 'django_nose.NoseTestSuiteRunner'
 MIDDLEWARE_CLASSES = tuple()
+
+TEST_REDIS_SERVER = os.getenv('REDIS_CACHE_TEST_SERVER', './redis/src/redis-server')

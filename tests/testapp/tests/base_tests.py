@@ -12,6 +12,7 @@ try:
 except ImportError:
     import pickle
 
+from django.conf import settings
 from django.core.cache import caches
 from django.core.exceptions import ImproperlyConfigured
 from django.test import TestCase, override_settings
@@ -52,6 +53,12 @@ def start_redis_servers(servers, db=None, master=None):
         db=db,
         password=REDIS_PASSWORD
     )
+    server_path = getattr(
+        settings,
+        'TEST_REDIS_SERVER',
+        './redis/src/redis-server',
+    )
+
     for i, server in enumerate(servers):
         connection_kwargs = parse_connection_kwargs(
             server,
@@ -78,7 +85,7 @@ def start_redis_servers(servers, db=None, master=None):
                 )
             )
 
-        args = ['./redis/src/redis-server'] + [
+        args = [server_path] + [
             "--{parameter} {value}".format(parameter=parameter, value=value)
             for parameter, value in parameters.items()
         ]
@@ -93,8 +100,10 @@ class SetupMixin(object):
 
     @classmethod
     def tearDownClass(cls):
-        for p in cls.processes:
-            p.kill()
+        if cls.processes:
+            for p in cls.processes:
+                p.kill()
+
         cls.processes = None
 
         # Give redis processes some time to shutdown
