@@ -23,19 +23,15 @@ class BaseSerializerTestCase(SetupMixin, TestCase):
     converts_tuple_to_list = False
     serializes_objects = True
 
-    def assertion_message(self, name):
-        return '%s %s' % (self.__class__.__name__, name)
-
     def test_string(self):
         self.cache.set('a', 'a')
-        self.assertEqual(self.cache.get('a'), 'a', self.assertion_message('test_string'))
+        self.assertEqual(self.cache.get('a'), 'a')
 
     def test_unicode(self):
         self.cache.set('Iñtërnâtiônàlizætiøn', 'Iñtërnâtiônàlizætiøn2')
         self.assertEqual(
             self.cache.get('Iñtërnâtiônàlizætiøn'),
-            'Iñtërnâtiônàlizætiøn2',
-            self.assertion_message('test_unicode')
+            'Iñtërnâtiônàlizætiøn2'
         )
 
     def test_number(self):
@@ -71,7 +67,7 @@ class BaseSerializerTestCase(SetupMixin, TestCase):
                 'function': f,
                 'class': C,
             })
-        self.assertEqual(stuff, data, self.assertion_message('test_dictionary'))
+        self.assertEqual(stuff, data)
 
 
 @override_settings(CACHES={

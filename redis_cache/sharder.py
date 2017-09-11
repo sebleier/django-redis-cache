@@ -1,7 +1,8 @@
 from bisect import insort, bisect
 import hashlib
-from django.utils.encoding import force_text
 
+from django.utils.encoding import force_text
+from django.utils.six import integer_types
 
 DIGITS = 8
 
@@ -23,8 +24,7 @@ class Node(object):
         self._position = get_slot(key)
 
     def __gt__(self, other):
-        # WARNING PYTHON < 3 : in get_slot() if the hash value overflows integer a LONG is returned !
-        if isinstance(other, (int, long)):
+        if isinstance(other, integer_types):
             return self._position > other
         elif isinstance(other, Node):
             return self._position > other._position
@@ -32,8 +32,6 @@ class Node(object):
             'Cannot compare this class with "%s" type' % type(other)
         )
 
-    def __str__(self):
-        return 'Node(position=%s, i=%s, node=%s)' % (self._position, self._i, self.node)
 
 class HashRing(object):
 
