@@ -58,6 +58,8 @@ of redis.  Start the server by running ``./src/redis-server``
         },
     }
 
+**Warning: By default, django-redis-cache set keys in the database 1 of Redis. By default, a session with redis-cli start on database 0. Switch to database 1 with** ``SELECT 1``.
+   
 .. _Django: https://www.djangoproject.com/
 .. _django-redis-cache: http://github.com/sebleier/django-redis-cache
 .. _redis-py: http://github.com/andymccurdy/redis-py/
