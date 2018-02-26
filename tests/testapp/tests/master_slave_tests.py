@@ -16,24 +16,7 @@ LOCATIONS = [
 ]
 
 
-@override_settings(CACHES={
-    'default': {
-        'BACKEND': 'redis_cache.RedisCache',
-        'LOCATION': LOCATIONS,
-        'OPTIONS': {
-            'DB': 1,
-            'PASSWORD': 'yadayada',
-            'PARSER_CLASS': 'redis.connection.HiredisParser',
-            'PICKLE_VERSION': -1,
-            'MASTER_CACHE': MASTER_LOCATION,
-        },
-    },
-})
-class MasterSlaveTestCase(SetupMixin, TestCase):
-
-    def setUp(self):
-        super(MasterSlaveTestCase, self).setUp()
-        pool.reset()
+class BaseMasterSlaveTestMixin(SetupMixin):
 
     def test_master_client(self):
         # Reset the caches at the beginning of the test.
@@ -93,3 +76,59 @@ class MasterSlaveTestCase(SetupMixin, TestCase):
         time.sleep(.2)
         for client in self.cache.clients.values():
             self.assertEqual(len(client.keys('*')), 0)
+
+
+@override_settings(CACHES={
+    'default': {
+        'BACKEND': 'redis_cache.RedisCache',
+        'LOCATION': LOCATIONS,
+        'OPTIONS': {
+            'DB': 1,
+            'PASSWORD': 'yadayada',
+            'PARSER_CLASS': 'redis.connection.HiredisParser',
+            'PICKLE_VERSION': -1,
+            'MASTER_CACHE': MASTER_LOCATION,
+        },
+    },
+})
+class MasterSlaveTestCase(BaseMasterSlaveTestMixin, TestCase):
+
+    def setUp(self):
+        super(MasterSlaveTestCase, self).setUp()
+        pool.reset()
+
+
+@override_settings(CACHES={
+    'default': {
+        'BACKEND': 'redis_cache.RedisCache',
+        'LOCATION': LOCATIONS,
+        'OPTIONS': {
+            'DB': 1,
+            'PASSWORD': 'yadayada',
+            'PARSER_CLASS': 'redis.connection.HiredisParser',
+            'PICKLE_VERSION': -1,
+            'MASTER_CACHE': MASTER_LOCATION,
+            'MASTER_CACHE_ONLY_FOR_WRITE': True,
+        },
+    },
+})
+class MasterCacheOnlyForWriteTestCase(BaseMasterSlaveTestMixin, TestCase):
+
+    def setUp(self):
+        super(MasterCacheOnlyForWriteTestCase, self).setUp()
+        pool.reset()
+
+    def test_master_client_only_for_write(self):
+        caches._caches.caches = {}
+
+        cache = self.get_cache()
+        master_client = cache.master_client
+        slaves = []
+        for slave in cache.ro_slaves_list:
+            slaves.append(
+                slave.connection_pool.connection_identifier
+            )
+        self.assertTrue(
+            master_client.connection_pool.connection_identifier not in slaves
+        )
+        self.assertEqual(len(slaves), 2)
