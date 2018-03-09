@@ -1,4 +1,4 @@
-from redis.connection import UnixDomainSocketConnection, Connection
+from redis.connection import UnixDomainSocketConnection, SSLConnection, Connection
 
 
 class CacheConnectionPool(object):
@@ -24,6 +24,7 @@ class CacheConnectionPool(object):
         client,
         host='127.0.0.1',
         port=6379,
+        ssl=False,
         db=1,
         password=None,
         parser_class=None,
@@ -42,7 +43,9 @@ class CacheConnectionPool(object):
 
         if pool is None:
             connection_class = (
-                unix_socket_path and UnixDomainSocketConnection or Connection
+                unix_socket_path and UnixDomainSocketConnection
+                or ssl and SSLConnection
+                or Connection
             )
 
             kwargs = {

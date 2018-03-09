@@ -180,6 +180,13 @@ class BaseRedisCache(BaseCache):
             socket_timeout=self.socket_timeout,
             socket_connect_timeout=self.socket_connect_timeout,
         )
+
+        # remove socket-related connection arguments
+        if kwargs.get('ssl', False):
+            del kwargs['socket_timeout']
+            del kwargs['socket_connect_timeout']
+            del kwargs['unix_socket_path']
+
         client = redis.Redis(**kwargs)
         kwargs.update(
             parser_class=self.parser_class,
