@@ -21,6 +21,12 @@ Docs can be found at http://django-redis-cache.readthedocs.org/en/latest/.
 Changelog
 =========
 
+1.8.0
+-----
+
+* Confirms support for Django 1.11, 2.0, and 2.1 (no code changes required).
+* Drops support for Django < 1.11.
+
 1.7.1
 -----
 
