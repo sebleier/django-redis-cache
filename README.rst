@@ -2,8 +2,8 @@
 Redis Django Cache Backend
 ==========================
 
-.. image:: https://img.shields.io/pypi/dm/django-redis-cache.svg
-    :target: https://pypi.python.org/pypi//django-redis-cache/
+.. image:: https://pepy.tech/badge/django-redis-cache
+    :target: https://pepy.tech/project/django-redis-cache
     :alt: Downloads
 
 .. image:: https://img.shields.io/pypi/v/django-redis-cache.svg
