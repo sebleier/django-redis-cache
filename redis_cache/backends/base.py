@@ -182,6 +182,8 @@ class BaseRedisCache(BaseCache):
             connection_pool_class=self.connection_pool_class,
             connection_pool_class_kwargs=self.connection_pool_class_kwargs,
         )
+        if 'connection_class' in kwargs and not 'connection_class' in kwargs['connection_pool_class_kwargs']:
+            kwargs['connection_pool_class_kwargs']['connection_class'] = kwargs['connection_class']
         connection_pool = pool.get_connection_pool(client, **kwargs)
         client.connection_pool = connection_pool
         return client
