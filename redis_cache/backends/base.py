@@ -73,7 +73,7 @@ class BaseRedisCache(BaseCache):
             **self.compressor_class_kwargs
         )
 
-        redis_py_version = (int(part) for part in redis.__version__.split('.'))
+        redis_py_version = tuple(int(part) for part in redis.__version__.split('.'))
         if redis_py_version < (3, 0, 0):
             self.Redis = redis.StrictRedis
         else:
