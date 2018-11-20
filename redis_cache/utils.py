@@ -6,28 +6,8 @@ from django.utils import six
 from django.utils.encoding import force_text, python_2_unicode_compatible
 from django.utils.six.moves.urllib.parse import parse_qs, urlparse
 
+from redis._compat import unicode
 from redis.connection import SSLConnection
-
-
-@python_2_unicode_compatible
-class CacheKey(object):
-    """
-    A stub string class that we can use to check if a key was created already.
-    """
-    def __init__(self, key, versioned_key):
-        self._original_key = key
-        self._versioned_key = versioned_key
-
-    def __eq__(self, other):
-        return self._versioned_key == other
-
-    def __str__(self):
-        return force_text(self._versioned_key)
-
-    def __hash__(self):
-        return hash(self._versioned_key)
-
-    __repr__ = __str__
 
 
 def get_servers(location):

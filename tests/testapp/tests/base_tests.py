@@ -21,6 +21,7 @@ import redis
 
 from tests.testapp.models import Poll, expensive_calculation
 from redis_cache.cache import RedisCache, pool
+from redis_cache.constants import KEY_EXPIRED, KEY_NON_VOLATILE
 from redis_cache.utils import get_servers, parse_connection_kwargs
 
 
@@ -299,13 +300,12 @@ class BaseRedisTestCase(SetupMixin):
     def test_set_expiration_timeout_zero(self):
         key, value = self.cache.make_key('key'), 'value'
         self.cache.set(key, value, timeout=0)
-        self.assertIsNone(self.cache.get_client(key).ttl(key))
-        self.assertIn(key, self.cache)
+        self.assertEqual(self.cache.get_client(key).ttl(key), KEY_EXPIRED)
+        self.assertNotIn(key, self.cache)
 
     def test_set_expiration_timeout_negative(self):
         key, value = self.cache.make_key('key'), 'value'
         self.cache.set(key, value, timeout=-1)
-        self.assertIsNone(self.cache.get_client(key).ttl(key))
         self.assertNotIn(key, self.cache)
 
     def test_unicode(self):
@@ -481,9 +481,9 @@ class BaseRedisTestCase(SetupMixin):
         self.cache.set('b', 'b', 5)
         self.cache.reinsert_keys()
         self.assertEqual(self.cache.get('a'), 'a')
-        self.assertGreater(self.cache.get_client('a').ttl(self.cache.make_key('a')), 1)
+        self.assertGreater(self.cache.ttl('a'), 1)
         self.assertEqual(self.cache.get('b'), 'b')
-        self.assertGreater(self.cache.get_client('b').ttl(self.cache.make_key('b')), 1)
+        self.assertGreater(self.cache.ttl('a'), 1)
 
     def test_get_or_set(self):
 
@@ -581,21 +581,21 @@ class BaseRedisTestCase(SetupMixin):
         self.cache.persist('a')
         self.assertIsNone(self.cache.ttl('a'))
 
-    def test_expire_no_expiry_to_expire(self):
+    def test_touch_no_expiry_to_expire(self):
         self.cache.set('a', 'a', timeout=None)
-        self.cache.expire('a', 10)
+        self.cache.touch('a', 10)
         ttl = self.cache.ttl('a')
         self.assertAlmostEqual(ttl, 10)
 
-    def test_expire_less(self):
+    def test_touch_less(self):
         self.cache.set('a', 'a', timeout=20)
-        self.cache.expire('a', 10)
+        self.cache.touch('a', 10)
         ttl = self.cache.ttl('a')
         self.assertAlmostEqual(ttl, 10)
 
-    def test_expire_more(self):
+    def test_touch_more(self):
         self.cache.set('a', 'a', timeout=10)
-        self.cache.expire('a', 20)
+        self.cache.touch('a', 20)
         ttl = self.cache.ttl('a')
         self.assertAlmostEqual(ttl, 20)
 

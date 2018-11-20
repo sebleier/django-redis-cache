@@ -29,9 +29,8 @@ class ShardedRedisCache(BaseRedisCache):
         """
         clients = defaultdict(list)
         for key in keys:
-            clients[self.get_client(key, write)].append(
-                self.make_key(key, version)
-            )
+            versioned_key = self.make_key(key, version=version)
+            clients[self.get_client(versioned_key, write)].append(versioned_key)
         return clients
 
     ####################
@@ -63,41 +62,28 @@ class ShardedRedisCache(BaseRedisCache):
         data = {}
         clients = self.shard(keys, version=version)
         for client, versioned_keys in clients.items():
-            original_keys = [key._original_key for key in versioned_keys]
+            versioned_keys = [self.make_key(key, version=version) for key in keys]
             data.update(
-                self._get_many(
-                    client,
-                    original_keys,
-                    versioned_keys=versioned_keys
-                )
+                self._get_many(client, keys, versioned_keys=versioned_keys)
             )
         return data
 
     def set_many(self, data, timeout=DEFAULT_TIMEOUT, version=None):
         """
-        Set a bunch of values in the cache at once from a dict of key/value
-        pairs. This is much more efficient than calling set() multiple times.
+        Set multiple values in the cache at once from a dict of key/value pairs.
 
         If timeout is given, that timeout will be used for the key; otherwise
         the default cache timeout will be used.
         """
         timeout = self.get_timeout(timeout)
+        versioned_key_to_key = {self.make_key(key, version=version): key for key in data.keys()}
+        clients = self.shard(versioned_key_to_key.values(), write=True, version=version)
 
-        clients = self.shard(data.keys(), write=True, version=version)
-
-        if timeout is None:
-            for client, keys in clients.items():
-                subset = {}
-                for key in keys:
-                    subset[key] = self.prep_value(data[key._original_key])
-                self._set_many(client, subset)
-            return
-
-        for client, keys in clients.items():
+        for client, versioned_keys in clients.items():
             pipeline = client.pipeline()
-            for key in keys:
-                value = self.prep_value(data[key._original_key])
-                self._set(pipeline, key, value, timeout)
+            for versioned_key in versioned_keys:
+                value = self.prep_value(data[versioned_key_to_key[versioned_key]])
+                self._set(pipeline, versioned_key, value, timeout)
             pipeline.execute()
 
     def incr_version(self, key, delta=1, version=None):
@@ -113,7 +99,7 @@ class ShardedRedisCache(BaseRedisCache):
         old = self.make_key(key, version=version)
         new = self.make_key(key, version=version + delta)
 
-        return self._incr_version(client, old, new, delta, version)
+        return self._incr_version(client, old, new, key, delta, version)
 
     #####################
     # Extra api methods #
