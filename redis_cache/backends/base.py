@@ -389,33 +389,59 @@ class BaseRedisCache(BaseCache):
     def delete_pattern(self, pattern, version=None):
         raise NotImplementedError
 
+    def lock(
+            self,
+            key,
+            timeout=None,
+            sleep=0.1,
+            blocking_timeout=None,
+            thread_local=True):
+        client = self.get_client(key, write=True)
+        return client.lock(
+            key,
+            timeout=timeout,
+            sleep=sleep,
+            blocking_timeout=blocking_timeout,
+            thread_local=thread_local
+        )
+
     @get_client(write=True)
-    def get_or_set(self, client, key, func, timeout=DEFAULT_TIMEOUT):
+    def get_or_set(self, client, key, func, timeout=DEFAULT_TIMEOUT, lock_timeout=None, stale_cache_timeout=0):
+        """Get a value from the cache or call `func` to set it and return it.
+
+        This implementation is slightly more advanced that Django's.  It provides thundering herd
+        protection that prevents multiple threads/processes from calling the value-generating
+        function too much.
+
+        """
         if not callable(func):
             raise Exception("Must pass in a callable")
 
+        lock_key = "__lock__" + key
+        fresh_key = "__fresh__" + key
+
+        is_fresh = self._get(client, fresh_key)
         value = self._get(client, key)
+        if is_fresh:
+            return value
 
-        if value is None:
+        timeout = self.get_timeout(timeout)
+        lock = self.lock(lock_key, timeout=lock_timeout)
 
-            dogpile_lock_key = "_lock" + key
-            dogpile_lock = client.get(dogpile_lock_key)
+        acquired = lock.acquire(blocking=False)
 
-            if dogpile_lock is None:
-                # Set the dogpile lock.
-                self._set(client, dogpile_lock_key, 0, None)
-
-                # calculate value of `func`.
-                try:
-                    value = func()
-                finally:
-                    # Regardless of error, release the dogpile lock.
-                    client.expire(dogpile_lock_key, -1)
-
-                timeout = self.get_timeout(timeout)
-
-                # Set value of `func` and set timeout
-                self._set(client, key, self.prep_value(value), timeout)
+        if acquired:
+            try:
+                value = func()
+            except Exception:
+                raise
+            else:
+                pipeline = client.pipeline()
+                pipeline.set(key, self.prep_value(value), timeout + stale_cache_timeout)
+                pipeline.set(fresh_key, self.prep_value(1), timeout)
+                pipeline.execute()
+            finally:
+                lock.release()
 
         return value
 
