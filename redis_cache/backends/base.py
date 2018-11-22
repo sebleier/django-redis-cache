@@ -414,7 +414,7 @@ class BaseRedisCache(BaseCache):
             timeout=DEFAULT_TIMEOUT,
             lock_timeout=None,
             stale_cache_timeout=None):
-        """Get a value from the cache or call `func` to set it and return it.
+        """Get a value from the cache or call ``func`` to set it and return it.
 
         This implementation is slightly more advanced that Django's.  It provides thundering herd
         protection, which prevents multiple threads/processes from calling the value-generating
@@ -422,11 +422,11 @@ class BaseRedisCache(BaseCache):
 
         There are three timeouts you can specify:
 
-        `timeout`: Time in seconds that value at `key` is considered fresh.
-        `lock_timeout`: Time in seconds that the lock will stay active and prevent other threads or
+        ``timeout``: Time in seconds that value at ``key`` is considered fresh.
+        ``lock_timeout``: Time in seconds that the lock will stay active and prevent other threads or
             processes from acquiring the lock.
-        `stale_cache_timeout`: Time in seconds that the stale cache will remain after the key has
-            expired. If `None` is specified, the stale value will remain indefinitely.
+        ``stale_cache_timeout``: Time in seconds that the stale cache will remain after the key has
+            expired. If ``None`` is specified, the stale value will remain indefinitely.
 
         """
         if not callable(func):
