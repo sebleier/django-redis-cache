@@ -406,12 +406,27 @@ class BaseRedisCache(BaseCache):
         )
 
     @get_client(write=True)
-    def get_or_set(self, client, key, func, timeout=DEFAULT_TIMEOUT, lock_timeout=None, stale_cache_timeout=0):
+    def get_or_set(
+            self,
+            client,
+            key,
+            func,
+            timeout=DEFAULT_TIMEOUT,
+            lock_timeout=None,
+            stale_cache_timeout=None):
         """Get a value from the cache or call `func` to set it and return it.
 
         This implementation is slightly more advanced that Django's.  It provides thundering herd
-        protection that prevents multiple threads/processes from calling the value-generating
+        protection, which prevents multiple threads/processes from calling the value-generating
         function too much.
+
+        There are three timeouts you can specify:
+
+        `timeout`: Time in seconds that value at `key` is considered fresh.
+        `lock_timeout`: Time in seconds that the lock will stay active and prevent other threads or
+            processes from acquiring the lock.
+        `stale_cache_timeout`: Time in seconds that the stale cache will remain after the key has
+            expired. If `None` is specified, the stale value will remain indefinitely.
 
         """
         if not callable(func):
@@ -422,6 +437,7 @@ class BaseRedisCache(BaseCache):
 
         is_fresh = self._get(client, fresh_key)
         value = self._get(client, key)
+
         if is_fresh:
             return value
 
@@ -436,9 +452,12 @@ class BaseRedisCache(BaseCache):
             except Exception:
                 raise
             else:
+                key_timeout = (
+                    None if stale_cache_timeout is None else timeout + stale_cache_timeout
+                )
                 pipeline = client.pipeline()
-                pipeline.set(key, self.prep_value(value), timeout + stale_cache_timeout)
-                pipeline.set(fresh_key, self.prep_value(1), timeout)
+                pipeline.set(key, self.prep_value(value), key_timeout)
+                pipeline.set(fresh_key, 1, timeout)
                 pipeline.execute()
             finally:
                 lock.release()
