@@ -57,6 +57,7 @@ class BaseRedisCache(BaseCache):
         self.pickle_version = self.get_pickle_version()
         self.socket_timeout = self.get_socket_timeout()
         self.socket_connect_timeout = self.get_socket_connect_timeout()
+        self.dogpile_lock_timeout = self.get_dogpile_lock_timeout()
         self.connection_pool_class = self.get_connection_pool_class()
         self.connection_pool_class_kwargs = (
             self.get_connection_pool_class_kwargs()
@@ -115,6 +116,9 @@ class BaseRedisCache(BaseCache):
 
     def get_socket_connect_timeout(self):
         return self.options.get('SOCKET_CONNECT_TIMEOUT', None)
+
+    def get_dogpile_lock_timeout(self):
+        return self.options.get('DOGPILE_LOCK_TIMEOUT', None)
 
     def get_connection_pool_class(self):
         pool_class = self.options.get(
@@ -414,7 +418,7 @@ class BaseRedisCache(BaseCache):
 
             if dogpile_lock is None:
                 # Set the dogpile lock.
-                self._set(client, dogpile_lock_key, 0, None)
+                self._set(client, dogpile_lock_key, 0, self.dogpile_lock_timeout)
 
                 # calculate value of `func`.
                 try:
