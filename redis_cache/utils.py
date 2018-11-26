@@ -119,6 +119,7 @@ def parse_connection_kwargs(server, db=None, **kwargs):
             })
 
         else:
+            kwargs.update(unix_socket_path=None) # not using a unix socket
             url_options.update({
                 'host': url.hostname,
                 'port': int(url.port or 6379),

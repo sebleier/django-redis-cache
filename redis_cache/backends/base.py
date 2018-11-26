@@ -180,12 +180,21 @@ class BaseRedisCache(BaseCache):
             socket_timeout=self.socket_timeout,
             socket_connect_timeout=self.socket_connect_timeout,
         )
-        client = redis.Redis(**kwargs)
+        
+        # Hack to make this work with SSL properly
+        client_kwargs = kwargs.copy()
+        if 'connection_class' in client_kwargs:
+            client_kwargs['ssl'] = True
+            del client_kwargs['connection_class']
+        client = redis.Redis(**client_kwargs)
+        
         kwargs.update(
             parser_class=self.parser_class,
             connection_pool_class=self.connection_pool_class,
             connection_pool_class_kwargs=self.connection_pool_class_kwargs,
         )
+        if 'connection_class' in kwargs and not 'connection_class' in kwargs['connection_pool_class_kwargs']:
+            kwargs['connection_pool_class_kwargs']['connection_class'] = kwargs['connection_class']
         connection_pool = pool.get_connection_pool(client, **kwargs)
         client.connection_pool = connection_pool
         return client
