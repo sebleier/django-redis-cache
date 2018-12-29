@@ -23,3 +23,4 @@
 | Joona Pääkkönen / paksu <https://github.com/paksu>
 | Tim Graham / timgraham <https://github.com/timgraham>
 | Justin Arulnathan / dinie <justin@gizmag.com>
+| Camilo Nova / camilonova <https://github.com/camilonova>

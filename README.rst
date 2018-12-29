@@ -324,6 +324,29 @@ Running Tests
 
 ``make test``
 
+
+Testing on your project
+=======================
+
+Usually you will need to run tests on your django project and you need to set
+a backend so you don't need to have a redis server running along with the test
+suite. You can do that by using this setting:
+
+``'BACKEND': 'redis_cache.backends.dummy.RedisDummyCache'``
+
+It will give you a Dummy cache which does not set or get any value, it works
+just like `DummyCache`_ works with Django.
+
+For an advanced implementation that uses `delete_pattern` or need to set and get
+values without a redis server, you can use this backend instead:
+
+``'BACKEND': 'redis_cache.backends.locmem.RedisLocMemCache'``
+
+This backend works like the `LocMemCache`_ from Django.
+
+
+.. _DummyCache: https://docs.djangoproject.com/en/2.1/topics/cache/#dummy-caching-for-development
+.. _LocMemCache: https://docs.djangoproject.com/en/2.1/topics/cache/#local-memory-caching
 .. _redis-py: http://github.com/andymccurdy/redis-py/
 .. _redis: http://github.com/antirez/redis/
 .. _hiredis: http://github.com/antirez/hiredis/
