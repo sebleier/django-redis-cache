@@ -1,7 +1,8 @@
 from bisect import insort, bisect
 import hashlib
-from django.utils.encoding import force_text
 
+from django.utils.encoding import force_text
+from django.utils.six import integer_types
 
 DIGITS = 8
 
@@ -23,7 +24,7 @@ class Node(object):
         self._position = get_slot(key)
 
     def __gt__(self, other):
-        if isinstance(other, int):
+        if isinstance(other, integer_types):
             return self._position > other
         elif isinstance(other, Node):
             return self._position > other._position
