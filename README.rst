@@ -24,7 +24,7 @@ Changelog
 X.Y.Z
 -----
 
-* Adds testing for Python 3.7 (no code changes required).
+* Adds testing for Django 2.2 and Python 3.7 (no code changes required).
 
 1.8.0
 -----
