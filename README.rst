@@ -21,6 +21,11 @@ Docs can be found at http://django-redis-cache.readthedocs.org/en/latest/.
 Changelog
 =========
 
+X.Y.Z
+-----
+
+* Adds testing for Python 3.7 (no code changes required).
+
 1.8.0
 -----
 
