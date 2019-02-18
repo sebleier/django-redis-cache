@@ -37,7 +37,7 @@ Quick Start
 
 * `redis`_ >= 2.8
 
-* `redis-py`_ >= 2.10.3
+* `redis-py`_ >= 3.0.0
 
 * `python`_ >= 2.7
 

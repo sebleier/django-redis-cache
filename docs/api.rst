@@ -137,7 +137,7 @@ Cache Methods Provided by django-redis-cache
 
     This implementation is slightly more advanced that Django's.  It provides thundering herd
     protection, which prevents multiple threads/processes from calling the value-generating
-    function too much.
+    function at the same time.
 
     :param key: Location of the value
     :param func: Callable used to set the value if key does not exist.
