@@ -9,7 +9,7 @@ env:
   - DJANGO_VERSION='>=1.11,<2.0'
   - DJANGO_VERSION='>=2.0,<2.1'
   - DJANGO_VERSION='>=2.1,<2.2'
-  - DJANGO_VERSION='>=2.2,<3.0'
+  - DJANGO_VERSION='>=2.2a1,<3.0'
 matrix:
   exclude:
     - python: 2.7
