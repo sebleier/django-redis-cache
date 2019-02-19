@@ -29,6 +29,7 @@ Changelog
 * Drops support for Python 3.4.
 * Removes custom ``expire`` method in lieu of Django's ``touch``.
 * Removes ``CacheKey`` in favor of string literals.
+* Adds testing for Django 2.2 and Python 3.7 (no code changes required).
 
 
 1.8.0

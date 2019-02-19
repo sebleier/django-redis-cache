@@ -1,18 +1,27 @@
+dist: xenial
 language: python
 python:
   - 2.7
   - 3.5
   - 3.6
+  - 3.7
 env:
   - DJANGO_VERSION='>=1.11,<2.0'
   - DJANGO_VERSION='>=2.0,<2.1'
   - DJANGO_VERSION='>=2.1,<2.2'
+  - DJANGO_VERSION='>=2.2a1,<3.0'
 matrix:
   exclude:
     - python: 2.7
       env: DJANGO_VERSION='>=2.0,<2.1'
     - python: 2.7
       env: DJANGO_VERSION='>=2.1,<2.2'
+    - python: 2.7
+      env: DJANGO_VERSION>=2.2a1,<3.0'
+    - python: 3.4
+      env: DJANGO_VERSION='>=2.1,<2.2'
+    - python: 3.4
+      env: DJANGO_VERSION='>=2.2a1,<3.0'
 # command to run tests
 install: ./install_redis.sh
 script: make test DJANGO_VERSION=$DJANGO_VERSION
