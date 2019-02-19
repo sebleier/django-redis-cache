@@ -26,8 +26,7 @@ Changelog
 
 * Adds support for redis-py >= 3.0.
 * Drops support for Redis 2.6.
-* Drops support for Python 3.4 and 3.5.
-* Add support for Python 3.7.
+* Drops support for Python 3.4.
 * Removes custom ``expire`` method in lieu of Django's ``touch``.
 * Removes ``CacheKey`` in favor of string literals.
 
