@@ -21,6 +21,16 @@ Docs can be found at http://django-redis-cache.readthedocs.org/en/latest/.
 Changelog
 =========
 
+2.0.0
+-----
+
+* Adds support for redis-py >= 3.0.
+* Drops support for Redis 2.6.
+* Drops support for Python 3.4.
+* Removes custom ``expire`` method in lieu of Django's ``touch``.
+* Removes ``CacheKey`` in favor of string literals.
+
+
 1.8.0
 -----
 

@@ -93,6 +93,13 @@ Standard Django Cache API
     :param version: Version of key
     :type version: Integer or None
 
+.. function:: touch(self, key, timeout):
+
+    Updates the timeout on a key.
+
+    :param key: Location of the value
+    :rtype: bool
+
 
 
 Cache Methods Provided by django-redis-cache
@@ -124,14 +131,22 @@ Cache Methods Provided by django-redis-cache
     :param version: Version of the keys
 
 
-.. function:: get_or_set(self, key, func[, timeout=None]):
+.. function:: get_or_set(self, key, func[, timeout=None, lock_timeout=None, stale_cache_timeout=None]):
 
-    Retrieves a key value from the cache and sets the value if it does not exist.
+    Get a value from the cache or call ``func`` to set it and return it.
+
+    This implementation is slightly more advanced that Django's.  It provides thundering herd
+    protection, which prevents multiple threads/processes from calling the value-generating
+    function at the same time.
 
     :param key: Location of the value
     :param func: Callable used to set the value if key does not exist.
-    :param timeout: Number of seconds to hold value in cache.
+    :param timeout: Time in seconds that value at key is considered fresh.
     :type timeout: Number of seconds or None
+    :param lock_timeout: Time in seconds that the lock will stay active and prevent other threads from acquiring the lock.
+    :type lock_timeout: Number of seconds or None
+    :param stale_cache_timeout: Time in seconds that the stale cache will remain after the key has expired. If ``None`` is specified, the stale value will remain indefinitely.
+    :type stale_cache_timeout: Number of seconds or None
 
 
 .. function:: reinsert_keys(self):
@@ -147,12 +162,9 @@ Cache Methods Provided by django-redis-cache
     :param key: Location of the value
     :rtype: bool
 
+.. function:: lock(self, key, timeout=None, sleep=0.1, blocking_timeout=None, thread_local=True)
 
-.. function:: expire(self, key, timeout):
-
-    Set the expire time on a key
-
-    :param key: Location of the value
-    :rtype: bool
+    See docs for `redis-py`_.
 
 
+.. _redis-py: https://redis-py.readthedocs.io/en/latest/_modules/redis/client.html#Redis.lock
