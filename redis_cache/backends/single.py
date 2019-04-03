@@ -56,25 +56,18 @@ class RedisCache(BaseRedisCache):
 
     def set_many(self, data, timeout=DEFAULT_TIMEOUT, version=None):
         """
-        Set a bunch of values in the cache at once from a dict of key/value
-        pairs. This is much more efficient than calling set() multiple times.
+        Set multiple values in the cache at once from a dict of key/value pairs.
 
         If timeout is given, that timeout will be used for the key; otherwise
         the default cache timeout will be used.
         """
         timeout = self.get_timeout(timeout)
 
-        versioned_keys = self.make_keys(data.keys(), version=version)
-        if timeout is None:
-            new_data = {}
-            for key in versioned_keys:
-                new_data[key] = self.prep_value(data[key._original_key])
-            return self._set_many(self.master_client, new_data)
-
         pipeline = self.master_client.pipeline()
-        for key in versioned_keys:
-            value = self.prep_value(data[key._original_key])
-            self._set(pipeline, key, value, timeout)
+        for key, value in data.items():
+            value = self.prep_value(value)
+            versioned_key = self.make_key(key, version=version)
+            self._set(pipeline, versioned_key, value, timeout)
         pipeline.execute()
 
     def incr_version(self, key, delta=1, version=None):
@@ -89,7 +82,7 @@ class RedisCache(BaseRedisCache):
         old = self.make_key(key, version)
         new = self.make_key(key, version=version + delta)
 
-        return self._incr_version(self.master_client, old, new, delta, version)
+        return self._incr_version(self.master_client, old, new, key, delta, version)
 
     #####################
     # Extra api methods #

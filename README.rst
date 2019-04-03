@@ -2,8 +2,8 @@
 Redis Django Cache Backend
 ==========================
 
-.. image:: https://img.shields.io/pypi/dm/django-redis-cache.svg
-    :target: https://pypi.python.org/pypi//django-redis-cache/
+.. image:: https://pepy.tech/badge/django-redis-cache
+    :target: https://pepy.tech/project/django-redis-cache
     :alt: Downloads
 
 .. image:: https://img.shields.io/pypi/v/django-redis-cache.svg
@@ -20,6 +20,23 @@ Docs can be found at http://django-redis-cache.readthedocs.org/en/latest/.
 
 Changelog
 =========
+
+2.0.0
+-----
+
+* Adds support for redis-py >= 3.0.
+* Drops support for Redis 2.6.
+* Drops support for Python 3.4.
+* Removes custom ``expire`` method in lieu of Django's ``touch``.
+* Removes ``CacheKey`` in favor of string literals.
+* Adds testing for Django 2.2 and Python 3.7 (no code changes required).
+
+
+1.8.0
+-----
+
+* Confirms support for Django 1.11, 2.0, and 2.1 (no code changes required).
+* Drops support for Django < 1.11.
 
 1.7.1
 -----

@@ -4,7 +4,7 @@ Intro and Quick Start
 Intro
 =====
 
-`django-redis-cache`_ is a cache backend for the `Django`_ webframework.  It
+`django-redis-cache`_ is a cache backend for the `Django`_ web framework.  It
 uses the `redis`_ server, which is a in-memory key-value data structure server.
 Similar to the great `Memcached`_ in performance, it has several features that
 makes it more appealing.
@@ -24,7 +24,7 @@ makes it more appealing.
     * Many more.
 
 Many of these features are irrelevant to caching, but can be used by other
-areas of a web stack and therefore offer a compelling case to simplify your
+areas of a web stack and therefore offers a compelling case to simplify your
 infrastructure.
 
 
@@ -35,9 +35,9 @@ Quick Start
 
 **Recommended:**
 
-* `redis`_ >= 2.4
+* `redis`_ >= 2.8
 
-* `redis-py`_ >= 2.10.3
+* `redis-py`_ >= 3.0.0
 
 * `python`_ >= 2.7
 
@@ -57,6 +57,8 @@ of redis.  Start the server by running ``./src/redis-server``
             'LOCATION': 'localhost:6379',
         },
     }
+
+**Warning: By default, django-redis-cache set keys in the database 1 of Redis. By default, a session with redis-cli start on database 0. Switch to database 1 with** ``SELECT 1``.
 
 .. _Django: https://www.djangoproject.com/
 .. _django-redis-cache: http://github.com/sebleier/django-redis-cache

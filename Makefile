@@ -1,7 +1,7 @@
 SHELL := /bin/bash
 
 PACKAGE_NAME=redis_cache
-DJANGO_VERSION?=>=1.10a1,<1.11
+DJANGO_VERSION?=>=1.11,<3.0
 
 .PHONY: install_requirements
 install_requirements: requirements*.txt

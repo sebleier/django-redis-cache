@@ -4,6 +4,7 @@ from __future__ import unicode_literals
 from hashlib import sha1
 import os
 import subprocess
+import threading
 import time
 
 
@@ -21,6 +22,7 @@ import redis
 
 from tests.testapp.models import Poll, expensive_calculation
 from redis_cache.cache import RedisCache, pool
+from redis_cache.constants import KEY_EXPIRED, KEY_NON_VOLATILE
 from redis_cache.utils import get_servers, parse_connection_kwargs
 
 
@@ -299,13 +301,12 @@ class BaseRedisTestCase(SetupMixin):
     def test_set_expiration_timeout_zero(self):
         key, value = self.cache.make_key('key'), 'value'
         self.cache.set(key, value, timeout=0)
-        self.assertIsNone(self.cache.get_client(key).ttl(key))
-        self.assertIn(key, self.cache)
+        self.assertEqual(self.cache.get_client(key).ttl(key), KEY_EXPIRED)
+        self.assertNotIn(key, self.cache)
 
     def test_set_expiration_timeout_negative(self):
         key, value = self.cache.make_key('key'), 'value'
         self.cache.set(key, value, timeout=-1)
-        self.assertIsNone(self.cache.get_client(key).ttl(key))
         self.assertNotIn(key, self.cache)
 
     def test_unicode(self):
@@ -481,9 +482,9 @@ class BaseRedisTestCase(SetupMixin):
         self.cache.set('b', 'b', 5)
         self.cache.reinsert_keys()
         self.assertEqual(self.cache.get('a'), 'a')
-        self.assertGreater(self.cache.get_client('a').ttl(self.cache.make_key('a')), 1)
+        self.assertGreater(self.cache.ttl('a'), 1)
         self.assertEqual(self.cache.get('b'), 'b')
-        self.assertGreater(self.cache.get_client('b').ttl(self.cache.make_key('b')), 1)
+        self.assertGreater(self.cache.ttl('a'), 1)
 
     def test_get_or_set(self):
 
@@ -509,6 +510,66 @@ class BaseRedisTestCase(SetupMixin):
         value = self.cache.get_or_set('a', expensive_function, 1)
         self.assertEqual(expensive_function.num_calls, 2)
         self.assertEqual(value, 42)
+
+    def test_get_or_set_serving_from_stale_value(self):
+
+        def expensive_function(x):
+            time.sleep(.5)
+            expensive_function.num_calls += 1
+            return x
+
+        expensive_function.num_calls = 0
+        self.assertEqual(expensive_function.num_calls, 0)
+        results = {}
+
+        def thread_worker(thread_id, return_value, timeout, lock_timeout, stale_cache_timeout):
+            value = self.cache.get_or_set(
+                'key',
+                lambda: expensive_function(return_value),
+                timeout,
+                lock_timeout,
+                stale_cache_timeout
+            )
+            results[thread_id] = value
+
+        thread_0 = threading.Thread(target=thread_worker, args=(0, 'a', 1, None, 1))
+        thread_1 = threading.Thread(target=thread_worker, args=(1, 'b', 1, None, 1))
+        thread_2 = threading.Thread(target=thread_worker, args=(2, 'c', 1, None, 1))
+        thread_3 = threading.Thread(target=thread_worker, args=(3, 'd', 1, None, 1))
+        thread_4 = threading.Thread(target=thread_worker, args=(4, 'e', 1, None, 1))
+
+        # First thread should complete and return its value
+        thread_0.start()  # t = 0, valid from t = .5 - 1.5, stale from t = 1.5 - 2.5
+
+        # Second thread will start while the first thread is still working and return None.
+        time.sleep(.25)  # t = .25
+        thread_1.start()
+        # Third thread will start after the first value is computed, but before it expires.
+        # its value.
+        time.sleep(.5)  # t = .75
+        thread_2.start()
+        # Fourth thread will start after the first value has expired and will re-compute its value.
+        # valid from t = 2.25 - 3.25, stale from t = 3.75 - 4.75.
+        time.sleep(1)  # t = 1.75
+        thread_3.start()
+        # Fifth thread will start after the fourth thread has started to compute its value, but
+        # before the first thread's stale cache has expired.
+        time.sleep(.25)  # t = 2
+        thread_4.start()
+
+        thread_0.join()
+        thread_1.join()
+        thread_2.join()
+        thread_3.join()
+        thread_4.join()
+
+        self.assertEqual(results, {
+            0: 'a',
+            1: None,
+            2: 'a',
+            3: 'd',
+            4: 'a'
+        })
 
     def assertMaxConnection(self, cache, max_num):
         for client in cache.clients.values():
@@ -581,21 +642,21 @@ class BaseRedisTestCase(SetupMixin):
         self.cache.persist('a')
         self.assertIsNone(self.cache.ttl('a'))
 
-    def test_expire_no_expiry_to_expire(self):
+    def test_touch_no_expiry_to_expire(self):
         self.cache.set('a', 'a', timeout=None)
-        self.cache.expire('a', 10)
+        self.cache.touch('a', 10)
         ttl = self.cache.ttl('a')
         self.assertAlmostEqual(ttl, 10)
 
-    def test_expire_less(self):
+    def test_touch_less(self):
         self.cache.set('a', 'a', timeout=20)
-        self.cache.expire('a', 10)
+        self.cache.touch('a', 10)
         ttl = self.cache.ttl('a')
         self.assertAlmostEqual(ttl, 10)
 
-    def test_expire_more(self):
+    def test_touch_more(self):
         self.cache.set('a', 'a', timeout=10)
-        self.cache.expire('a', 20)
+        self.cache.touch('a', 20)
         ttl = self.cache.ttl('a')
         self.assertAlmostEqual(ttl, 20)
 
