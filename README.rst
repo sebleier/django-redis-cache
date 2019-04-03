@@ -264,6 +264,19 @@ Requirements
         },
     }
 
+    # For Cluster Setup
+    # redis-server instance.
+    CACHES = {
+        'default': {
+            'BACKEND': 'redis_cache.RedisClusterCache',
+            'LOCATION': [
+                '<host>:<port>',
+                '<host>:<port>',
+                '<host>:<port>',
+            ]
+        },
+    }
+
 
 
 Usage
