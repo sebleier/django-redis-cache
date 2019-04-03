@@ -21,7 +21,8 @@ class RedisClusterCache(BaseRedisCache):
         super(RedisClusterCache, self).__init__(server, params)
 
         conn_params = {
-            'startup_nodes': []
+            'startup_nodes': [],
+            'decode_responses': True
         }
 
         for server in self.servers:
