@@ -114,7 +114,7 @@ def parse_connection_kwargs(server, db=None, **kwargs):
                     pass
 
             if url.scheme == 'rediss':
-                url_options['connection_class'] = SSLConnection
+                url_options['ssl'] = True
 
         # last shot at the db value
         url_options['db'] = int(url_options.get('db', db or 0))
