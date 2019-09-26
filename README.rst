@@ -197,6 +197,7 @@ Requirements
 `redis`_ >= 2.4
 `hiredis`_
 `python`_ >= 2.7
+`six`
 
 1. Run ``pip install django-redis-cache``.
 
@@ -331,7 +332,7 @@ Example::
 Running Tests
 =============
 
-``./install_redis.sh``
+``./install_redis.sh`` (run `sudo xcodebuild -license` first if you're on MacOS so you can use the xcode build tools )
 
 ``make test``
 

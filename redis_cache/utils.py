@@ -2,9 +2,9 @@ import importlib
 import warnings
 
 from django.core.exceptions import ImproperlyConfigured
-from django.utils import six
+import six
 from django.utils.encoding import force_text, python_2_unicode_compatible
-from django.utils.six.moves.urllib.parse import parse_qs, urlparse
+from six.moves.urllib.parse import parse_qs, urlparse
 
 from redis._compat import unicode
 from redis.connection import SSLConnection
