@@ -21,6 +21,11 @@ Docs can be found at http://django-redis-cache.readthedocs.org/en/latest/.
 Changelog
 =========
 
+X.Y.Z
+-----
+
+* Adds support for Django 3.0.
+
 2.0.0
 -----
 
