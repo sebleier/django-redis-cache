@@ -1,4 +1,6 @@
 from functools import wraps
+import time
+import uuid
 
 from django.core.cache.backends.base import (
     BaseCache, DEFAULT_TIMEOUT, InvalidCacheBackendError,
@@ -435,34 +437,42 @@ class BaseRedisCache(BaseCache):
         lock_key = "__lock__" + key
         fresh_key = "__fresh__" + key
 
-        is_fresh = self._get(client, fresh_key)
         value = self._get(client, key)
-
-        if is_fresh:
+        is_fresh = self._get(client, fresh_key)
+        if value is not None and is_fresh:
             return value
 
-        timeout = self.get_timeout(timeout)
+        fresh_timeout = self.get_timeout(timeout)
+        key_timeout = None if stale_cache_timeout is None else fresh_timeout + stale_cache_timeout
+
+        token = uuid.uuid1().hex
         lock = self.lock(lock_key, timeout=lock_timeout)
+        acquired = lock.acquire(blocking=False, token=token)
 
-        acquired = lock.acquire(blocking=False)
-
-        if acquired:
-            try:
-                value = func()
-            except Exception:
-                raise
+        while True:
+            if acquired:
+                try:
+                    value = func()
+                except Exception:
+                    raise
+                else:
+                    pipeline = client.pipeline()
+                    pipeline.set(key, self.prep_value(value), key_timeout)
+                    pipeline.set(fresh_key, 1, fresh_timeout)
+                    pipeline.execute()
+                    return value
+                finally:
+                    lock.release()
+            elif value is None:
+                time.sleep(lock.sleep)
+                value = self._get(client, key)
+                if value is None:
+                    # If there is no value present yet, try to acquire the
+                    # lock again (maybe the other thread died for some reason
+                    # and we should try to compute the value instead).
+                    acquired = lock.acquire(blocking=False, token=token)
             else:
-                key_timeout = (
-                    None if stale_cache_timeout is None else timeout + stale_cache_timeout
-                )
-                pipeline = client.pipeline()
-                pipeline.set(key, self.prep_value(value), key_timeout)
-                pipeline.set(fresh_key, 1, timeout)
-                pipeline.execute()
-            finally:
-                lock.release()
-
-        return value
+                return value
 
     def _reinsert_keys(self, client):
         keys = list(client.scan_iter(match='*'))
