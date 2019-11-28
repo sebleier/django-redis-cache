@@ -410,11 +410,13 @@ class BaseRedisCache(BaseCache):
             self,
             client,
             key,
-            func,
+            default,
             timeout=DEFAULT_TIMEOUT,
             lock_timeout=None,
             stale_cache_timeout=None):
-        """Get a value from the cache or call ``func`` to set it and return it.
+        """Get a value from the cache or use ``default`` to set it and return it.
+
+        If ``default`` is a callable, call it without arguments and store its return value in the cache instead.
 
         This implementation is slightly more advanced that Django's.  It provides thundering herd
         protection, which prevents multiple threads/processes from calling the value-generating
@@ -429,9 +431,6 @@ class BaseRedisCache(BaseCache):
             expired. If ``None`` is specified, the stale value will remain indefinitely.
 
         """
-        if not callable(func):
-            raise Exception("Must pass in a callable")
-
         lock_key = "__lock__" + key
         fresh_key = "__fresh__" + key
 
@@ -448,7 +447,7 @@ class BaseRedisCache(BaseCache):
 
         if acquired:
             try:
-                value = func()
+                value = default() if callable(default) else default
             except Exception:
                 raise
             else:
