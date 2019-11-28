@@ -576,55 +576,55 @@ class BaseRedisTestCase(SetupMixin):
             5: ('d', 2),
         })
 
-    def test_get_or_set_takeover_after_lock_holder_fails(self):
-
-        def expensive_function(result):
-            time.sleep(.5)
-            expensive_function.num_calls += 1
-            if result is ValueError:
-                raise result()
-            return result
-
-        expensive_function.num_calls = 0
-        self.assertEqual(expensive_function.num_calls, 0)
+    def test_get_or_set_take_over_after_lock_holder_fails(self):
         results = {}
 
-        def thread_worker(thread_id, return_value, timeout, lock_timeout, stale_cache_timeout):
+        def get_or_set(func):
+            return self.cache.get_or_set('key', func, timeout=1, lock_timeout=None, stale_cache_timeout=1)
+
+        def worker_0():
+            def func():
+                worker_0.entered.set()
+                time.sleep(.5)
+                worker_0.completed.set()
+                raise ValueError()
+            worker_1.started.wait()
             try:
-                value = self.cache.get_or_set(
-                    'key',
-                    lambda: expensive_function(return_value),
-                    timeout,
-                    lock_timeout,
-                    stale_cache_timeout
-                )
+                results[0] = get_or_set(func)
             except ValueError:
-                results[thread_id] = (ValueError, expensive_function.num_calls)
-            else:
-                results[thread_id] = (value, expensive_function.num_calls)
+                results[0] = ValueError
+        worker_0.entered = threading.Event()
+        worker_0.completed = threading.Event()
 
-        # First thread should fail
-        thread_0 = threading.Thread(target=thread_worker, args=(0, ValueError, 1, None, 1))
-        thread_0.start()  # t = 0
-        # Second thread will start while the first thread is still working, wait for the first thread to die,
-        # then take over computation, and return its value.
-        time.sleep(.25)  # t = .25
-        thread_1 = threading.Thread(target=thread_worker, args=(1, 'b', 1, None, 1))
-        thread_1.start()
-        # Third thread will start after the first thread has died but while the second thread is still working,
-        # wait for the second thread to complete its work, and return that value.
-        time.sleep(.5)  # t = .75
-        thread_2 = threading.Thread(target=thread_worker, args=(2, 'c', 1, None, 1))
-        thread_2.start()
+        def worker_1():
+            def func():
+                worker_1.entered.set()
+                time.sleep(.5)
+                return 'b'
+            worker_1.started.set()
+            worker_0.entered.wait()
+            results[1] = get_or_set(func)
+        worker_1.started = threading.Event()
+        worker_1.entered = threading.Event()
 
-        thread_0.join()
-        thread_1.join()
-        thread_2.join()
+        def worker_2():
+            worker_1.entered.wait()
+            results[2] = get_or_set(lambda: 'c')
+
+        threads = [
+            threading.Thread(target=worker_0),
+            threading.Thread(target=worker_1),
+            threading.Thread(target=worker_2),
+        ]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
 
         self.assertEqual(results, {
-            0: (ValueError, 1),
-            1: ('b', 2),
-            2: ('b', 2),
+            0: ValueError,
+            1: 'b',
+            2: 'b',
         })
 
     def assertMaxConnection(self, cache, max_num):
