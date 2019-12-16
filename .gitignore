@@ -20,3 +20,4 @@ MANIFEST
 redis/
 */_build/
 build/*
+.idea
