@@ -164,7 +164,7 @@ This will lead to some cache misses, so be aware.
 * Keys can now be kept alive indefinitely by setting the timeout to None,
     e.g. `cache.set('key', 'value', timeout=None)`
 * Adds `ttl` method to the cache.  `cache.ttl(key)` will return the number of
-    seconds before it expires or None if the key is not volitile.
+    seconds before it expires or None if the key is not volatile.
 
 0.11.0
 ------

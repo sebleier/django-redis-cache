@@ -368,7 +368,7 @@ class BaseRedisCache(BaseCache):
 
     @get_client()
     def ttl(self, client, key):
-        """Returns the 'time-to-live' of a key.  If the key is not volitile,
+        """Returns the 'time-to-live' of a key.  If the key is not volatile,
         i.e. it has not set expiration, then the value returned is None.
         Otherwise, the value is the number of seconds remaining.  If the key
         does not exist, 0 is returned.
