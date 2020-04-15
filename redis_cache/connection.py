@@ -26,7 +26,6 @@ class CacheConnectionPool(object):
         port=6379,
         ssl=False,
         db=1,
-        ssl=False,
         password=None,
         parser_class=None,
         unix_socket_path=None,
