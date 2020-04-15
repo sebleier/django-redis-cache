@@ -6,7 +6,6 @@ from django.utils.encoding import force_text
 from six import python_2_unicode_compatible, string_types
 from six.moves.urllib.parse import parse_qs, urlparse
 
-from redis._compat import unicode
 from redis.connection import SSLConnection
 
 

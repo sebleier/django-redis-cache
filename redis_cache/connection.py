@@ -24,6 +24,7 @@ class CacheConnectionPool(object):
         client,
         host='127.0.0.1',
         port=6379,
+        ssl=False,
         db=1,
         ssl=False,
         password=None,
