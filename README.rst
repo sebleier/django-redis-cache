@@ -21,6 +21,11 @@ Docs can be found at http://django-redis-cache.readthedocs.org/en/latest/.
 Changelog
 =========
 
+2.1.1
+-----
+
+* Fixes URL scheme for `rediss://`.
+
 2.1.0
 -----
 
