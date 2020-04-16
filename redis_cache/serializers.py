@@ -66,10 +66,11 @@ class MSGPackSerializer(BaseSerializer):
 class YAMLSerializer(BaseSerializer):
 
     def serialize(self, value):
-        return yaml.dump(value, encoding='utf-8')
+        return yaml.dump(value, encoding='utf-8', Dumper=yaml.Dumper)
 
     def deserialize(self, value):
-        return yaml.load(value)
+        return yaml.load(value, Loader=yaml.FullLoader)
+
 
 class DummySerializer(BaseSerializer):
 
