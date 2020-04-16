@@ -183,7 +183,14 @@ class BaseRedisCache(BaseCache):
             socket_timeout=self.socket_timeout,
             socket_connect_timeout=self.socket_connect_timeout,
         )
-        client = self.Redis(**kwargs)
+
+        # remove socket-related connection arguments
+        if kwargs.get('ssl', False):
+            del kwargs['socket_timeout']
+            del kwargs['socket_connect_timeout']
+            del kwargs['unix_socket_path']
+
+        client = redis.Redis(**kwargs)
         kwargs.update(
             parser_class=self.parser_class,
             connection_pool_class=self.connection_pool_class,
@@ -423,8 +430,8 @@ class BaseRedisCache(BaseCache):
         There are three timeouts you can specify:
 
         ``timeout``: Time in seconds that value at ``key`` is considered fresh.
-        ``lock_timeout``: Time in seconds that the lock will stay active and prevent other threads or
-            processes from acquiring the lock.
+        ``lock_timeout``: Time in seconds that the lock will stay active and prevent other threads
+            or processes from acquiring the lock.
         ``stale_cache_timeout``: Time in seconds that the stale cache will remain after the key has
             expired. If ``None`` is specified, the stale value will remain indefinitely.
 
