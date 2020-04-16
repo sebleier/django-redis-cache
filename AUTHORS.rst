@@ -24,3 +24,4 @@
 | Tim Graham / timgraham <https://github.com/timgraham>
 | Justin Arulnathan / dinie <justin@gizmag.com>
 | Mariusz Felisiak / felixxm <felisiak.mariusz@gmail.com>
+| metamatik <mr@babik.fr>
