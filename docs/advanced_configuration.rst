@@ -74,7 +74,7 @@ Database Number
 
 The ``DB`` option will allow key/values to exist in a different keyspace.  The
 ``DB`` value can either be defined in the ``OPTIONS`` or in the ``LOCATION``
-scheme.
+scheme. Note that in the default config of redis, you have only 16 databases and the valid values are from 0 to 15.
 
 **Default DB:** ``1``
 
