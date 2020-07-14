@@ -388,6 +388,19 @@ class BaseRedisCache(BaseCache):
         else:
             return ttl
 
+    def _get_pattern(self, client, pattern):
+        keys = client.keys(pattern)
+        if len(keys):
+            recovered_data = {}
+            results = client.mget(keys)
+            for key, value in zip(keys, results):
+                if value is not None:
+                    recovered_data[key] = self.get_value(value)
+            return recovered_data
+
+    def get_pattern(self, pattern, version=None):
+        raise NotImplementedError
+
     def _delete_pattern(self, client, pattern):
         keys = list(client.scan_iter(match=pattern))
         if keys:

@@ -430,6 +430,16 @@ class BaseRedisTestCase(SetupMixin):
         self.assertTrue(self.cache.set("bool_f", False))
         self.assertFalse(self.cache.get("bool_f"))
 
+    def test_get_pattern(self):
+        data = {
+            'a': 'a',
+            'aba': 'b',
+            'aaa': 'c'
+        }
+        self.cache.set_many(data)
+        data = self.cache.get_pattern('a*a')
+        self.assertEquals(len(data.keys()), 2)
+
     def test_delete_pattern(self):
         data = {
             'a': 'a',
