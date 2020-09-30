@@ -25,3 +25,4 @@
 | Justin Arulnathan / dinie <justin@gizmag.com>
 | Mariusz Felisiak / felixxm <felisiak.mariusz@gmail.com>
 | metamatik <mr@babik.fr>
+| Florian Zimmermann / PoByBolek <https://github.com/PoByBolek>
