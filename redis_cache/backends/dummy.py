@@ -8,11 +8,8 @@ class RedisDummyCache(DummyCache):
     def delete_pattern(self, pattern, version=None):
         return None
 
-    def get_or_set(self, key, func, timeout=None):
-        if not callable(func):
-            raise Exception("Must pass in a callable")
-
-        return func()
+    def get_or_set(self, key, default, timeout=None):
+        return default() if callable(default) else default
 
     def reinsert_keys(self):
         return None

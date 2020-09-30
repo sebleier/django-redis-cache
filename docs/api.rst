@@ -131,16 +131,18 @@ Cache Methods Provided by django-redis-cache
     :param version: Version of the keys
 
 
-.. function:: get_or_set(self, key, func[, timeout=None, lock_timeout=None, stale_cache_timeout=None]):
+.. function:: get_or_set(self, key, default[, timeout=None, lock_timeout=None, stale_cache_timeout=None]):
 
-    Get a value from the cache or call ``func`` to set it and return it.
+    Get a value from the cache or use ``default`` to set it and return it.
+
+    If ``default`` is a callable, call it without arguments and store its return value in the cache instead.
 
     This implementation is slightly more advanced that Django's.  It provides thundering herd
     protection, which prevents multiple threads/processes from calling the value-generating
     function at the same time.
 
     :param key: Location of the value
-    :param func: Callable used to set the value if key does not exist.
+    :param default: Used to set the value if key does not exist.
     :param timeout: Time in seconds that value at key is considered fresh.
     :type timeout: Number of seconds or None
     :param lock_timeout: Time in seconds that the lock will stay active and prevent other threads from acquiring the lock.

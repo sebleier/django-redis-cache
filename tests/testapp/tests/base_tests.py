@@ -486,7 +486,7 @@ class BaseRedisTestCase(SetupMixin):
         self.assertEqual(self.cache.get('b'), 'b')
         self.assertGreater(self.cache.ttl('a'), 1)
 
-    def test_get_or_set(self):
+    def test_get_or_set_with_callable(self):
 
         def expensive_function():
             expensive_function.num_calls += 1
@@ -510,6 +510,15 @@ class BaseRedisTestCase(SetupMixin):
         value = self.cache.get_or_set('a', expensive_function, 1)
         self.assertEqual(expensive_function.num_calls, 2)
         self.assertEqual(value, 42)
+
+    def test_get_or_set_with_value(self):
+        self.assertEqual(self.cache.get_or_set('a', 42, 1), 42)
+        self.assertEqual(self.cache.get_or_set('a', 43, 1), 42)
+        self.assertEqual(self.cache.get_or_set('a', 44, 1), 42)
+        time.sleep(2)
+        self.assertEqual(self.cache.get_or_set('a', 45, 1), 45)
+        self.assertEqual(self.cache.get_or_set('a', 46, 1), 45)
+        self.assertEqual(self.cache.get_or_set('a', 47, 1), 45)
 
     def test_get_or_set_serving_from_stale_value(self):
 
