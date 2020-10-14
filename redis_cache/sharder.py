@@ -1,14 +1,13 @@
-from bisect import insort, bisect
 import hashlib
-from django.utils.encoding import force_text
+from bisect import insort, bisect
 
 
-DIGITS = 8
+MAX_SLOTS = 2**16
 
 
-def get_slot(s):
-    _hash = hashlib.md5(s.encode('utf-8')).hexdigest()
-    return int(_hash[-DIGITS:], 16)
+def get_slot(key):
+    digest = hashlib.md5(key.encode('utf-8')).hexdigest()
+    return int(digest, 16) % MAX_SLOTS
 
 
 class Node(object):
@@ -16,10 +15,7 @@ class Node(object):
     def __init__(self, node, i):
         self._node = node
         self._i = i
-        key = "{0}:{1}".format(
-            force_text(i),
-            force_text(self._node),
-        )
+        key = f"{i}:{self._node}"
         self._position = get_slot(key)
 
     def __gt__(self, other):
@@ -52,5 +48,5 @@ class HashRing(object):
                 del self._nodes[n - i - 1]
 
     def get_node(self, key):
-        i = bisect(self._nodes, get_slot(force_text(key))) - 1
+        i = bisect(self._nodes, get_slot(key)) - 1
         return self._nodes[i]._node
