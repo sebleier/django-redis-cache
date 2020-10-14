@@ -2,12 +2,12 @@ import hashlib
 from bisect import insort, bisect
 
 
-MAX_SLOTS = 2**16
+DIGITS = 8
 
 
 def get_slot(key):
     digest = hashlib.md5(key.encode('utf-8')).hexdigest()
-    return int(digest, 16) % MAX_SLOTS
+    return int(digest[-DIGITS:], 16)
 
 
 class Node(object):
