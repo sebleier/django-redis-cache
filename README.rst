@@ -21,6 +21,15 @@ Docs can be found at http://django-redis-cache.readthedocs.org/en/latest/.
 Changelog
 =========
 
+
+3.0.0
+-----
+
+* Adds support for Python 3.8
+* Drops support for Python 2.X and Python 3.5
+* Drops support for Django < 3.0
+
+
 2.1.2
 -----
 
