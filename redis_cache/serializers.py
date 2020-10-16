@@ -15,7 +15,7 @@ try:
 except ImportError:
     pass
 
-from django.utils.encoding import force_bytes, force_text
+from django.utils.encoding import force_bytes, force_str
 
 
 class BaseSerializer(object):
@@ -51,7 +51,7 @@ class JSONSerializer(BaseSerializer):
         return force_bytes(json.dumps(value))
 
     def deserialize(self, value):
-        return json.loads(force_text(value))
+        return json.loads(force_str(value))
 
 
 class MSGPackSerializer(BaseSerializer):
