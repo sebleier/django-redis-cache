@@ -1,7 +1,7 @@
 SHELL := /bin/bash
 
 PACKAGE_NAME=redis_cache
-DJANGO_VERSION?=>=1.11,<3.2
+DJANGO_VERSION?=>=1.11,<4.0
 
 .PHONY: install_requirements
 install_requirements: requirements*.txt
@@ -21,8 +21,8 @@ clean:
 
 .PHONY: test
 test: install_requirements
-	PYTHONPATH=$(PYTHONPATH): django-admin.py test --settings=tests.settings -s
+	PYTHONPATH=$(PYTHONPATH): django-admin test --settings=tests.settings -s
 
 .PHONY: shell
 shell:
-	PYTHONPATH=$(PYTHONPATH): django-admin.py shell --settings=tests.settings
+	PYTHONPATH=$(PYTHONPATH): django-admin shell --settings=tests.settings
