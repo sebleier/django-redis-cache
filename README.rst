@@ -21,6 +21,10 @@ Docs can be found at http://django-redis-cache.readthedocs.org/en/latest/.
 Changelog
 =========
 
+X.Y.Z
+-----
+
+* Confirms support for Django 3.2 (no code changes required).
 
 3.0.0
 -----
