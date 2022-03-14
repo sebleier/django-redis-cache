@@ -2,8 +2,10 @@ import importlib
 import warnings
 
 from django.core.exceptions import ImproperlyConfigured
-from urllib.parse import parse_qs
-from urllib.parse import urlparse
+
+from redis.connection import SSLConnection
+from urllib.parse import parse_qs, urlparse
+
 
 
 def get_servers(location):
