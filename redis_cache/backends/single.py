@@ -21,7 +21,7 @@ class RedisCache(BaseRedisCache):
             client = self.create_client(server)
             self.clients[client.connection_pool.connection_identifier] = client
 
-        self.client_list = self.clients.values()
+        self.client_list = list(self.clients.values())
         self.master_client = self.get_master_client()
 
     def get_client(self, key, write=False):
