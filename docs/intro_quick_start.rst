@@ -35,11 +35,11 @@ Quick Start
 
 **Recommended:**
 
-* `redis`_ >= 2.8
+* `redis`_ >= 4.0
 
-* `redis-py`_ >= 3.0.0
+* `redis-py`_ >= 4.3.0
 
-* `python`_ >= 2.7
+* `python`_ >= 3.6
 
 
 1. Install `redis`_.  You can use ``install_redis.sh`` to install a local copy
