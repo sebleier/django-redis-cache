@@ -24,9 +24,6 @@ from django.utils.encoding import force_bytes, force_str
 
 
 class BaseSerializer(object):
-    def __init__(self, **kwargs):
-        super(BaseSerializer, self).__init__(**kwargs)
-
     def serialize(self, value):
         raise NotImplementedError
 
@@ -58,9 +55,6 @@ class CompressedPickleSerializer(CompressedMixin, PickleSerializer):
 
 
 class JSONSerializer(BaseSerializer):
-    def __init__(self, **kwargs):
-        super(JSONSerializer, self).__init__(**kwargs)
-
     def serialize(self, value):
         return force_bytes(json.dumps(value))
 
@@ -97,9 +91,6 @@ class CompressedYAMLSerializer(CompressedMixin, YAMLSerializer):
 
 
 class DummySerializer(BaseSerializer):
-    def __init__(self, **kwargs):
-        super(DummySerializer, self).__init__(**kwargs)
-
     def serialize(self, value):
         return value
 
