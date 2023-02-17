@@ -15,14 +15,15 @@ try:
 except ImportError:
     pass
 
+try:
+    import lzma
+except ImportError:
+    pass
+
 from django.utils.encoding import force_bytes, force_str
 
 
 class BaseSerializer(object):
-
-    def __init__(self, **kwargs):
-        super(BaseSerializer, self).__init__(**kwargs)
-
     def serialize(self, value):
         raise NotImplementedError
 
@@ -30,8 +31,15 @@ class BaseSerializer(object):
         raise NotImplementedError
 
 
-class PickleSerializer(object):
+class CompressedMixin:
+    def serialize(self, value):
+        return lzma.compress(force_bytes(super(CompressedMixin, self).serialize(value)))
 
+    def deserialize(self, value):
+        return super(CompressedMixin, self).deserialize(lzma.decompress(value))
+
+
+class PickleSerializer(object):
     def __init__(self, pickle_version=-1):
         self.pickle_version = pickle_version
 
@@ -42,11 +50,11 @@ class PickleSerializer(object):
         return pickle.loads(force_bytes(value))
 
 
+class CompressedPickleSerializer(CompressedMixin, PickleSerializer):
+    pass
+
+
 class JSONSerializer(BaseSerializer):
-
-    def __init__(self, **kwargs):
-        super(JSONSerializer, self).__init__(**kwargs)
-
     def serialize(self, value):
         return force_bytes(json.dumps(value))
 
@@ -54,29 +62,35 @@ class JSONSerializer(BaseSerializer):
         return json.loads(force_str(value))
 
 
-class MSGPackSerializer(BaseSerializer):
+class CompressedJSONSerializer(CompressedMixin, JSONSerializer):
+    pass
 
+
+class MSGPackSerializer(BaseSerializer):
     def serialize(self, value):
         return msgpack.dumps(value)
 
     def deserialize(self, value):
-        return msgpack.loads(value, encoding='utf-8')
+        return msgpack.loads(value, encoding="utf-8")
+
+
+class CompressedMSGPackSerializer(CompressedMixin, MSGPackSerializer):
+    pass
 
 
 class YAMLSerializer(BaseSerializer):
-
     def serialize(self, value):
-        return yaml.dump(value, encoding='utf-8', Dumper=yaml.Dumper)
+        return yaml.dump(value, encoding="utf-8", Dumper=yaml.Dumper)
 
     def deserialize(self, value):
         return yaml.load(value, Loader=yaml.FullLoader)
 
 
+class CompressedYAMLSerializer(CompressedMixin, YAMLSerializer):
+    pass
+
+
 class DummySerializer(BaseSerializer):
-
-    def __init__(self, **kwargs):
-        super(DummySerializer, self).__init__(**kwargs)
-
     def serialize(self, value):
         return value
 
