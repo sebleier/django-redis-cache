@@ -15,6 +15,11 @@ try:
 except ImportError:
     pass
 
+try:
+    import lzma
+except ImportError:
+    pass
+
 from django.utils.encoding import force_bytes, force_str
 
 
@@ -30,6 +35,14 @@ class BaseSerializer(object):
         raise NotImplementedError
 
 
+class CompressedMixin:
+    def serialize(self, value):
+        return lzma.compress(force_bytes(super(CompressedMixin, self).serialize(value)))
+
+    def deserialize(self, value):
+        return super(CompressedMixin, self).deserialize(lzma.decompress(value))
+
+
 class PickleSerializer(object):
 
     def __init__(self, pickle_version=-1):
@@ -41,6 +54,9 @@ class PickleSerializer(object):
     def deserialize(self, value):
         return pickle.loads(force_bytes(value))
 
+
+class CompressedPickleSerializer(CompressedMixin, PickleSerializer):
+    pass
 
 class JSONSerializer(BaseSerializer):
 
@@ -54,6 +70,9 @@ class JSONSerializer(BaseSerializer):
         return json.loads(force_str(value))
 
 
+class CompressedJSONSerializer(CompressedMixin, JSONSerializer):
+    pass
+
 class MSGPackSerializer(BaseSerializer):
 
     def serialize(self, value):
@@ -63,6 +82,10 @@ class MSGPackSerializer(BaseSerializer):
         return msgpack.loads(value, encoding='utf-8')
 
 
+class CompressedMSGPackSerializer(CompressedMixin, MSGPackSerializer):
+    pass
+
+
 class YAMLSerializer(BaseSerializer):
 
     def serialize(self, value):
@@ -70,6 +93,10 @@ class YAMLSerializer(BaseSerializer):
 
     def deserialize(self, value):
         return yaml.load(value, Loader=yaml.FullLoader)
+
+
+class CompressedYAMLSerializer(CompressedMixin, YAMLSerializer):
+    pass
 
 
 class DummySerializer(BaseSerializer):
