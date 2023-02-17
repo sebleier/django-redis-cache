@@ -24,7 +24,6 @@ from django.utils.encoding import force_bytes, force_str
 
 
 class BaseSerializer(object):
-
     def __init__(self, **kwargs):
         super(BaseSerializer, self).__init__(**kwargs)
 
@@ -44,7 +43,6 @@ class CompressedMixin:
 
 
 class PickleSerializer(object):
-
     def __init__(self, pickle_version=-1):
         self.pickle_version = pickle_version
 
@@ -58,8 +56,8 @@ class PickleSerializer(object):
 class CompressedPickleSerializer(CompressedMixin, PickleSerializer):
     pass
 
-class JSONSerializer(BaseSerializer):
 
+class JSONSerializer(BaseSerializer):
     def __init__(self, **kwargs):
         super(JSONSerializer, self).__init__(**kwargs)
 
@@ -73,13 +71,13 @@ class JSONSerializer(BaseSerializer):
 class CompressedJSONSerializer(CompressedMixin, JSONSerializer):
     pass
 
-class MSGPackSerializer(BaseSerializer):
 
+class MSGPackSerializer(BaseSerializer):
     def serialize(self, value):
         return msgpack.dumps(value)
 
     def deserialize(self, value):
-        return msgpack.loads(value, encoding='utf-8')
+        return msgpack.loads(value, encoding="utf-8")
 
 
 class CompressedMSGPackSerializer(CompressedMixin, MSGPackSerializer):
@@ -87,9 +85,8 @@ class CompressedMSGPackSerializer(CompressedMixin, MSGPackSerializer):
 
 
 class YAMLSerializer(BaseSerializer):
-
     def serialize(self, value):
-        return yaml.dump(value, encoding='utf-8', Dumper=yaml.Dumper)
+        return yaml.dump(value, encoding="utf-8", Dumper=yaml.Dumper)
 
     def deserialize(self, value):
         return yaml.load(value, Loader=yaml.FullLoader)
@@ -100,7 +97,6 @@ class CompressedYAMLSerializer(CompressedMixin, YAMLSerializer):
 
 
 class DummySerializer(BaseSerializer):
-
     def __init__(self, **kwargs):
         super(DummySerializer, self).__init__(**kwargs)
 
