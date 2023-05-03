@@ -71,8 +71,8 @@ class CacheConnectionPool(object):
 
             pool = connection_pool_class(**kwargs)
 
-            self._connection_pools[connection_identifier] = pool
             pool.connection_identifier = connection_identifier
+            self._connection_pools[connection_identifier] = pool
 
         return pool
 
