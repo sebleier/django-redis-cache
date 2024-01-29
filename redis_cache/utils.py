@@ -135,7 +135,7 @@ def parse_connection_kwargs(server, db=None, **kwargs):
                 port = int(port)
             except (ValueError, TypeError):
                 raise ImproperlyConfigured(
-                    "{0} from {1} must be an integer".format(
+                    "{} from {} must be an integer".format(
                         repr(port),
                         server
                     )

@@ -15,7 +15,7 @@ class RedisCache(BaseRedisCache):
         """
         Connect to Redis, and set up cache backend.
         """
-        super(RedisCache, self).__init__(server, params)
+        super().__init__(server, params)
 
         for server in self.servers:
             client = self.create_client(server)

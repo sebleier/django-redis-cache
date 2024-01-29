@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from django.test import TestCase, override_settings
 
 from tests.testapp.tests.base_tests import BaseRedisTestCase
@@ -6,7 +5,7 @@ from tests.testapp.tests.base_tests import BaseRedisTestCase
 LOCATION = "127.0.0.1:6381"
 
 
-class CompressionTestCase(object):
+class CompressionTestCase:
 
     def test_compression(self):
         key = 'a'

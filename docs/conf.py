@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 #
 # django-redis-cache documentation build configuration file, created by
 # sphinx-quickstart on Mon Jul 20 10:08:24 2015.

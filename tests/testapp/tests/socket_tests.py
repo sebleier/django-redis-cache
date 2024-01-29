@@ -1,4 +1,3 @@
-# # -*- coding: utf-8 -*-
 from collections import Counter
 from tests.testapp.tests.base_tests import BaseRedisTestCase
 from tests.testapp.tests.multi_server_tests import MultiServerTests

@@ -10,7 +10,7 @@ def get_slot(key):
     return int(digest[-DIGITS:], 16)
 
 
-class Node(object):
+class Node:
 
     def __init__(self, node, i):
         self._node = node
@@ -28,7 +28,7 @@ class Node(object):
         )
 
 
-class HashRing(object):
+class HashRing:
 
     def __init__(self, replicas=16):
         self.replicas = replicas
