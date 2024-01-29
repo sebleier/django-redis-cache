@@ -33,7 +33,7 @@ LOCATIONS = [
 class MasterSlaveTestCase(SetupMixin, TestCase):
 
     def setUp(self):
-        super(MasterSlaveTestCase, self).setUp()
+        super().setUp()
         pool.reset()
 
     def test_master_client(self):

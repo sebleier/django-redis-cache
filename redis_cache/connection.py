@@ -1,7 +1,7 @@
 from redis.connection import UnixDomainSocketConnection, Connection, SSLConnection
 
 
-class CacheConnectionPool(object):
+class CacheConnectionPool:
 
     def __init__(self):
         self._clients = {}

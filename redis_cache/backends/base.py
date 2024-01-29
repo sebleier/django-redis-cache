@@ -40,7 +40,7 @@ class BaseRedisCache(BaseCache):
         """
         Connect to Redis, and set up cache backend.
         """
-        super(BaseRedisCache, self).__init__(params)
+        super().__init__(params)
         self.server = server
         self.servers = get_servers(server)
         self.params = params or {}

@@ -18,10 +18,10 @@ except ImportError:
 from django.utils.encoding import force_bytes, force_str
 
 
-class BaseSerializer(object):
+class BaseSerializer:
 
     def __init__(self, **kwargs):
-        super(BaseSerializer, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
     def serialize(self, value):
         raise NotImplementedError
@@ -30,7 +30,7 @@ class BaseSerializer(object):
         raise NotImplementedError
 
 
-class PickleSerializer(object):
+class PickleSerializer:
 
     def __init__(self, pickle_version=-1):
         self.pickle_version = pickle_version
@@ -45,7 +45,7 @@ class PickleSerializer(object):
 class JSONSerializer(BaseSerializer):
 
     def __init__(self, **kwargs):
-        super(JSONSerializer, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
     def serialize(self, value):
         return force_bytes(json.dumps(value))
@@ -75,7 +75,7 @@ class YAMLSerializer(BaseSerializer):
 class DummySerializer(BaseSerializer):
 
     def __init__(self, **kwargs):
-        super(DummySerializer, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
     def serialize(self, value):
         return value

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from tests.testapp.tests.base_tests import BaseRedisTestCase
 from tests.testapp.tests.multi_server_tests import MultiServerTests
 from django.test import TestCase, override_settings

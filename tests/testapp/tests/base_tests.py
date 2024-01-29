@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-from __future__ import unicode_literals
-
 from hashlib import sha1
 import os
 import subprocess
@@ -69,7 +66,7 @@ def start_redis_servers(servers, db=None, master=None):
         if is_socket:
             parameters.update(
                 port=0,
-                unixsocket='/tmp/redis{0}.sock'.format(i),
+                unixsocket=f'/tmp/redis{i}.sock',
                 unixsocketperm=755,
             )
         if master and not connection_kwargs == master_connection_kwargs:
@@ -82,7 +79,7 @@ def start_redis_servers(servers, db=None, master=None):
             )
 
         args = ['./redis/src/redis-server'] + [
-            "--{parameter} {value}".format(parameter=parameter, value=value)
+            f"--{parameter} {value}"
             for parameter, value in parameters.items()
         ]
         p = subprocess.Popen(args, stdout=devnull)
@@ -91,7 +88,7 @@ def start_redis_servers(servers, db=None, master=None):
     return processes
 
 
-class SetupMixin(object):
+class SetupMixin:
     processes = None
 
     @classmethod

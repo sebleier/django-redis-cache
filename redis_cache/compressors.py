@@ -6,10 +6,10 @@ except ImportError:
     pass
 
 
-class BaseCompressor(object):
+class BaseCompressor:
 
     def __init__(self, **kwargs):
-        super(BaseCompressor, self).__init__()
+        super().__init__()
 
     def compress(self, value):
         raise NotImplementedError
@@ -31,7 +31,7 @@ class ZLibCompressor(BaseCompressor):
 
     def __init__(self, level=6):
         self.level = level
-        super(ZLibCompressor, self).__init__()
+        super().__init__()
 
     def compress(self, value):
         return zlib.compress(value, self.level)
@@ -44,7 +44,7 @@ class BZip2Compressor(BaseCompressor):
 
     def __init__(self, compresslevel=9):
         self.compresslevel = compresslevel
-        super(BZip2Compressor, self).__init__()
+        super().__init__()
 
     def compress(self, value):
         return bz2.compress(value, compresslevel=self.compresslevel)

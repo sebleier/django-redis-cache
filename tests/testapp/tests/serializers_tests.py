@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-from __future__ import unicode_literals
-
 from django.test import TestCase, override_settings
 
 from tests.testapp.tests.base_tests import SetupMixin

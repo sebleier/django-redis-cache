@@ -9,7 +9,7 @@ from redis_cache.sharder import HashRing
 class ShardedRedisCache(BaseRedisCache):
 
     def __init__(self, server, params):
-        super(ShardedRedisCache, self).__init__(server, params)
+        super().__init__(server, params)
         self.sharder = HashRing()
 
         for server in self.servers:
