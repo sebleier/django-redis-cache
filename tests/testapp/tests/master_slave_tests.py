@@ -38,10 +38,7 @@ class MasterSlaveTestCase(SetupMixin, TestCase):
 
     def test_master_client(self):
         # Reset the cache at the beginning of the test.
-        if django.VERSION < (3, 2):
-            del caches._caches.caches['default']
-        else:
-            del caches['default']
+        del caches['default']
         cache = self.get_cache()
         client = cache.master_client
         self.assertEqual(

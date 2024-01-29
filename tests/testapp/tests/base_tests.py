@@ -123,12 +123,9 @@ class SetupMixin:
 
     def tearDown(self):
         # clear caches to allow @override_settings(CACHES=...) to work.
-        if django.VERSION < (3, 2):
-            caches._caches.caches = {}
-        else:
-            for alias in caches:
-                if hasattr(caches._connections, alias):
-                    del caches[alias]
+        for alias in caches:
+            if hasattr(caches._connections, alias):
+                del caches[alias]
         # Sometimes it will be necessary to skip this method because we need to
         # test default initialization and that may be using a different port
         # than the test redis server.
